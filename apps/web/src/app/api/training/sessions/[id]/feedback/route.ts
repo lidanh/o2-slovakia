@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
 import { generateFeedback } from "@/lib/llm";
-import { getCommunication } from "@/lib/wonderful";
+import { generateSessionFeedback } from "@/lib/feedback";
 import type { TranscriptEntry } from "@repo/shared";
 
 const FeedbackSchema = z.object({
@@ -29,9 +29,42 @@ export async function POST(
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
     }
 
+    const transcript: TranscriptEntry[] = parsed.data.transcript ?? [];
+
+    // If no transcript provided, delegate to shared feedback generation
+    if (transcript.length === 0) {
+      try {
+        const result = await generateSessionFeedback(id);
+        if (result.alreadyExists) {
+          return NextResponse.json(result.session);
+        }
+        return NextResponse.json({
+          success: true,
+          score: result.feedback?.score ?? null,
+          star_rating: result.feedback?.star_rating ?? null,
+          feedback_summary: result.feedback?.feedback_summary ?? null,
+          feedback_breakdown: result.feedback?.feedback_breakdown ?? null,
+          suggestions: result.feedback?.suggestions ?? null,
+          highlights: result.feedback?.highlights ?? null,
+        });
+      } catch (err) {
+        const message = (err as Error).message;
+        if (message.includes("Session not found")) {
+          return NextResponse.json({ error: message }, { status: 404 });
+        }
+        if (message.includes("No transcript available")) {
+          return NextResponse.json(
+            { error: "No transcript available. Provide a transcript or ensure the session has a communication_id." },
+            { status: 400 }
+          );
+        }
+        throw err;
+      }
+    }
+
+    // Transcript was provided in the request body — use it directly
     const supabase = createServiceClient();
 
-    // Fetch session with scenario + difficulty info
     const { data: session, error: sessionErr } = await supabase
       .from("training_sessions")
       .select("*, scenario:scenarios(*), difficulty_level:difficulty_levels(*)")
@@ -45,74 +78,10 @@ export async function POST(
       );
     }
 
-    let transcript: TranscriptEntry[] = parsed.data.transcript ?? [];
     const scenarioName = parsed.data.scenarioName ?? session.scenario?.name ?? "Unknown";
     const difficultyName = parsed.data.difficultyName ?? session.difficulty_level?.name ?? "Default";
-
-    // If no transcript provided, try to get it from the communication
-    if (transcript.length === 0 && session.communication_id) {
-      console.log("[feedback] Session has communication_id:", session.communication_id);
-
-      const { data: agentConfig } = await supabase
-        .from("agent_config")
-        .select("config")
-        .limit(1)
-        .single();
-
-      const wonderful = agentConfig?.config?.wonderful as
-        | { api_key?: string; tenant_url?: string }
-        | undefined;
-
-      console.log("[feedback] Wonderful config present:", !!wonderful?.api_key, !!wonderful?.tenant_url);
-
-      if (wonderful?.api_key && wonderful?.tenant_url) {
-        try {
-          const commData = await getCommunication(session.communication_id, wonderful);
-          console.log("[feedback] Communication response keys:", Object.keys(commData));
-
-          // Wonderful API wraps response in { data: { ... }, status: 200 }
-          const inner = (commData as { data?: Record<string, unknown> }).data ?? commData;
-          console.log("[feedback] Inner data keys:", Object.keys(inner));
-
-          const transcriptions = (inner as { transcriptions?: { speaker?: string; text?: string; start_time?: number }[] }).transcriptions;
-          console.log("[feedback] Transcriptions count:", transcriptions?.length ?? "undefined");
-
-          if (Array.isArray(transcriptions)) {
-            transcript = transcriptions
-              .filter((t) => t.speaker === "agent" || t.speaker === "customer")
-              .map((t) => ({
-                role: (t.speaker === "agent" ? "agent" : "customer") as "agent" | "customer",
-                content: t.text ?? "",
-                timestamp: t.start_time,
-              }));
-            console.log("[feedback] Filtered transcript entries:", transcript.length);
-          }
-
-          // Store duration from communication (ms -> seconds)
-          const durationMs = (inner as { duration?: number }).duration;
-          if (typeof durationMs === "number" && !session.call_duration) {
-            await supabase
-              .from("training_sessions")
-              .update({ call_duration: Math.round(durationMs / 1000) })
-              .eq("id", id);
-          }
-        } catch (err) {
-          console.error("[feedback] Failed to fetch communication:", err);
-        }
-      }
-    } else {
-      console.log("[feedback] Skipped communication fetch — transcript provided:", transcript.length, "communication_id:", session.communication_id);
-    }
-
-    if (transcript.length === 0) {
-      console.log("[feedback] No transcript available after all attempts");
-      return NextResponse.json(
-        { error: "No transcript available. Provide a transcript or ensure the session has a communication_id." },
-        { status: 400 }
-      );
-    }
-
     const scenarioPrompt = session.scenario?.prompt ?? session.scenario?.description ?? undefined;
+
     const feedback = await generateFeedback(transcript, scenarioName, difficultyName, scenarioPrompt);
 
     const { data, error } = await supabase
