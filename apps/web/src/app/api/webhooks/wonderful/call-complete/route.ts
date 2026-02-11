@@ -5,7 +5,7 @@ import { generateSessionFeedback } from "@/lib/feedback";
 
 const CallCompletePayload = z.object({
   communication_id: z.string(),
-  assignment_id: z.string().uuid(),
+  session_id: z.string().uuid(),
 });
 
 export async function POST(request: NextRequest) {
@@ -27,34 +27,15 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = createServiceClient();
 
-    // Try to find session by communication_id first
-    let session: Record<string, unknown> | null = null;
-
-    const { data: byCommunication } = await supabase
+    // Look up session by session_id
+    const { data: session, error: sessionError } = await supabase
       .from("training_sessions")
       .select("*")
-      .eq("communication_id", body.communication_id)
+      .eq("id", body.session_id)
       .single();
 
-    if (byCommunication) {
-      session = byCommunication;
-    } else {
-      // Fall back to assignment_id lookup
-      const { data: byAssignment } = await supabase
-        .from("training_sessions")
-        .select("*")
-        .eq("assignment_id", body.assignment_id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-
-      if (byAssignment) {
-        session = byAssignment;
-      }
-    }
-
-    if (!session) {
-      console.error("[webhook/call-complete] No session found for", body);
+    if (sessionError || !session) {
+      console.error("[webhook/call-complete] No session found for session_id:", body.session_id);
       return NextResponse.json(
         { success: false, error: "Training session not found" },
         { status: 404 }

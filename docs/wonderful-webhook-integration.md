@@ -23,14 +23,14 @@ Trigger this webhook when a phone call finishes. The system will:
 | Field              | Type   | Required | Description                                      |
 |--------------------|--------|----------|--------------------------------------------------|
 | `communication_id` | string | Yes      | The Wonderful communication ID for the call      |
-| `assignment_id`    | string | Yes      | UUID of the assignment that triggered this call   |
+| `session_id`       | string | Yes      | UUID of the training session for this call        |
 
 **Example:**
 
 ```json
 {
   "communication_id": "comm_abc123def456",
-  "assignment_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+  "session_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 }
 ```
 
@@ -82,12 +82,7 @@ Trigger this webhook when a phone call finishes. The system will:
 
 ## Session Lookup Logic
 
-The endpoint finds the training session using this fallback strategy:
-
-1. **By `communication_id`** — exact match on `training_sessions.communication_id`
-2. **By `assignment_id`** — if no match on communication_id, looks up the most recent session for the given assignment
-
-If the session doesn't yet have a `communication_id` stored, the webhook will set it automatically and mark the session as `completed`.
+The endpoint looks up the training session directly by `session_id`. No fallback strategy is needed.
 
 ## Idempotency
 
@@ -100,6 +95,6 @@ curl -X POST https://your-domain.com/api/webhooks/wonderful/call-complete \
   -H "Content-Type: application/json" \
   -d '{
     "communication_id": "comm_abc123def456",
-    "assignment_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    "session_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
   }'
 ```
