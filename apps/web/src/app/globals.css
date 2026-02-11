@@ -1,0 +1,681 @@
+/* O2 Slovakia — Global Styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Open+Sans:wght@400;500;600;700&display=swap');
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: #FFFFFF;
+  color: #1a1a2e;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6,
+.ant-typography h1,
+.ant-typography h2,
+.ant-typography h3,
+.ant-typography h4,
+.ant-typography h5,
+.ant-typography h6,
+.ant-typography.ant-typography-h1,
+.ant-typography.ant-typography-h2,
+.ant-typography.ant-typography-h3,
+.ant-typography.ant-typography-h4,
+.ant-typography.ant-typography-h5,
+.ant-typography.ant-typography-h6 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+/* ============================
+   O2 Brand Gradients
+   ============================ */
+.o2-gradient-primary {
+  background: linear-gradient(135deg, #0112AA 0%, #0045D4 50%, #2563EB 100%);
+}
+
+.o2-gradient-sidebar {
+  background: linear-gradient(180deg, #060E5E 0%, #0112AA 40%, #0B3FBF 100%);
+}
+
+.o2-gradient-hero {
+  background: linear-gradient(135deg, #0112AA 0%, #0148D6 50%, #3B82F6 100%);
+}
+
+.o2-gradient-subtle {
+  background: linear-gradient(135deg, #F0F4FF 0%, #E8F0FE 50%, #F5F3FF 100%);
+}
+
+.o2-gradient-card-accent {
+  background: linear-gradient(135deg, #0112AA 0%, #2563EB 100%);
+}
+
+/* ============================
+   Table Styling
+   ============================ */
+.ant-table {
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+.ant-table-thead > tr > th {
+  background: #FAFBFC !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.6px !important;
+  color: #9CA3AF !important;
+  border-bottom: 1px solid #F0F0F0 !important;
+  padding: 14px 16px !important;
+}
+
+.ant-table-tbody > tr > td {
+  padding: 14px 16px !important;
+  border-bottom: 1px solid #F8F8F8 !important;
+}
+
+.ant-table-tbody > tr {
+  transition: all 0.2s ease !important;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: #F8FAFF !important;
+}
+
+.ant-table-tbody > tr:hover {
+  transform: scale(1.002);
+}
+
+.ant-table-tbody > tr:last-child > td {
+  border-bottom: none !important;
+}
+
+/* ============================
+   Card Styling
+   ============================ */
+.ant-card {
+  border-radius: 16px !important;
+  border: 1px solid #E8ECF1 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.25s ease !important;
+}
+
+.ant-card:hover {
+  box-shadow: 0 4px 16px rgba(1, 18, 170, 0.06) !important;
+}
+
+.ant-card .ant-card-head {
+  border-bottom: 1px solid #F0F2F5 !important;
+  padding: 16px 24px !important;
+  min-height: auto !important;
+}
+
+.ant-card .ant-card-head-title {
+  font-weight: 600 !important;
+  font-size: 15px !important;
+  color: #1a1a2e !important;
+}
+
+/* ============================
+   Button Styling
+   ============================ */
+.ant-btn {
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+}
+
+.ant-btn-primary {
+  box-shadow: 0 2px 8px rgba(1, 18, 170, 0.2) !important;
+}
+
+.ant-btn-primary:hover {
+  box-shadow: 0 4px 16px rgba(1, 18, 170, 0.3) !important;
+  transform: translateY(-1px);
+}
+
+.ant-btn-primary:active {
+  transform: translateY(0) scale(0.98) !important;
+  box-shadow: 0 1px 4px rgba(1, 18, 170, 0.2) !important;
+}
+
+.ant-btn-default:active {
+  transform: scale(0.98) !important;
+}
+
+.ant-btn-default {
+  border-color: #E5E7EB !important;
+}
+
+.ant-btn-default:hover {
+  border-color: #0112AA !important;
+  color: #0112AA !important;
+}
+
+/* ============================
+   Tag Styling
+   ============================ */
+.ant-tag {
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+  border: none !important;
+  padding: 2px 12px !important;
+  line-height: 22px !important;
+}
+
+/* ============================
+   Input / Select
+   ============================ */
+.ant-input,
+.ant-select-selector,
+.ant-input-affix-wrapper,
+.ant-picker {
+  border-radius: 10px !important;
+  transition: all 0.2s ease !important;
+}
+
+.ant-input:focus,
+.ant-input-affix-wrapper-focused {
+  box-shadow: 0 0 0 3px rgba(1, 18, 170, 0.08) !important;
+  border-color: #0112AA !important;
+}
+
+.ant-select-focused .ant-select-selector {
+  box-shadow: 0 0 0 3px rgba(1, 18, 170, 0.08) !important;
+}
+
+/* ============================
+   Modal
+   ============================ */
+.ant-modal-content {
+  border-radius: 20px !important;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12) !important;
+}
+
+.ant-modal-header {
+  padding: 24px 28px 16px !important;
+  border-bottom: none !important;
+}
+
+.ant-modal-title {
+  font-size: 20px !important;
+  font-weight: 400 !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.ant-modal-body {
+  padding: 8px 28px 24px !important;
+}
+
+.ant-modal-footer {
+  padding: 16px 28px 24px !important;
+  border-top: none !important;
+}
+
+/* ============================
+   Sidebar Menu
+   ============================ */
+.ant-menu-dark .ant-menu-item {
+  border-radius: 10px !important;
+  margin: 3px 12px !important;
+  height: 42px !important;
+  line-height: 42px !important;
+  transition: all 0.2s ease !important;
+  font-weight: 500 !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.ant-menu-dark .ant-menu-item:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+}
+
+.ant-menu-dark .ant-menu-item-selected {
+  background: rgba(255, 255, 255, 0.15) !important;
+  font-weight: 600 !important;
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transform: translateX(2px);
+}
+
+.ant-menu-dark .ant-menu-submenu-title {
+  border-radius: 10px !important;
+  margin: 3px 12px !important;
+  height: 42px !important;
+  line-height: 42px !important;
+  font-weight: 500 !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.ant-menu-dark .ant-menu-submenu-title:hover {
+  color: #fff !important;
+}
+
+.ant-menu-dark .ant-menu-item .ant-menu-item-icon,
+.ant-menu-dark .ant-menu-submenu-title .ant-menu-item-icon {
+  color: inherit !important;
+}
+
+/* ============================
+   Form
+   ============================ */
+.ant-form-item-label > label {
+  font-weight: 500 !important;
+  color: #374151 !important;
+  font-size: 13px !important;
+}
+
+/* ============================
+   Statistic
+   ============================ */
+.ant-statistic-title {
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  color: #9CA3AF !important;
+  font-weight: 500 !important;
+}
+
+.ant-statistic-content-value {
+  font-weight: 700 !important;
+  color: #1a1a2e !important;
+}
+
+/* ============================
+   Scrollbar
+   ============================ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* ============================
+   Transitions
+   ============================ */
+.ant-switch,
+.ant-btn {
+  transition: all 0.2s ease !important;
+}
+
+/* ============================
+   Animation Keyframes
+   ============================ */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes floatOrb {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(15px, -20px) scale(1.03); }
+  66% { transform: translate(-10px, 10px) scale(0.97); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(1, 18, 170, 0.15); }
+  50% { box-shadow: 0 0 0 8px rgba(1, 18, 170, 0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ============================
+   Page Content Animations
+   ============================ */
+.page-content {
+  animation: fadeIn 0.35s ease-out;
+}
+
+/* Staggered children animation */
+.animate-stagger > * {
+  opacity: 0;
+  animation: fadeInUp 0.4s ease-out forwards;
+}
+
+.animate-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.animate-stagger > *:nth-child(2) { animation-delay: 60ms; }
+.animate-stagger > *:nth-child(3) { animation-delay: 120ms; }
+.animate-stagger > *:nth-child(4) { animation-delay: 180ms; }
+.animate-stagger > *:nth-child(5) { animation-delay: 240ms; }
+.animate-stagger > *:nth-child(6) { animation-delay: 300ms; }
+
+/* Fade-in-up utility */
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease-out both;
+}
+
+/* Slide-in-left for page headers */
+.animate-slide-in {
+  animation: slideInLeft 0.35s ease-out both;
+}
+
+/* Scale-in for cards */
+.animate-scale-in {
+  animation: scaleIn 0.3s ease-out both;
+}
+
+/* Floating orb for auth page */
+.animate-float-orb {
+  animation: floatOrb 8s ease-in-out infinite;
+}
+
+.animate-float-orb-slow {
+  animation: floatOrb 12s ease-in-out infinite reverse;
+}
+
+/* ============================
+   KPI Card Accent Styles
+   ============================ */
+.kpi-card {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+.kpi-card-0::before {
+  background: linear-gradient(90deg, #0112AA, #2563EB);
+}
+
+.kpi-card-1::before {
+  background: linear-gradient(90deg, #2563EB, #60A5FA);
+}
+
+.kpi-card-2::before {
+  background: linear-gradient(90deg, #7C3AED, #A78BFA);
+}
+
+.kpi-card-3::before {
+  background: linear-gradient(90deg, #059669, #34D399);
+}
+
+/* ============================
+   Page Content Area
+   ============================ */
+.page-content {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ============================
+   Empty State
+   ============================ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  color: #9CA3AF;
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+}
+
+/* ============================
+   Notification Bell Hover
+   ============================ */
+.bell-btn:hover .anticon {
+  animation: bellRing 0.5s ease;
+}
+
+@keyframes bellRing {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(12deg); }
+  40% { transform: rotate(-10deg); }
+  60% { transform: rotate(6deg); }
+  80% { transform: rotate(-3deg); }
+}
+
+/* ============================
+   Tag Micro-interaction
+   ============================ */
+.ant-tag {
+  transition: transform 0.15s ease !important;
+}
+
+.ant-tag:hover {
+  transform: scale(1.04);
+}
+
+/* ============================
+   Login Card Entrance
+   ============================ */
+.login-card-animated {
+  animation: fadeInUp 0.5s ease-out both;
+}
+
+/* ============================
+   Avatar Hover Glow
+   ============================ */
+.avatar-glow {
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.avatar-glow:hover {
+  box-shadow: 0 0 0 3px rgba(1, 18, 170, 0.15);
+  transform: scale(1.05);
+}
+
+/* ============================
+   Rank Badge Hover
+   ============================ */
+.rank-badge {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rank-badge:hover {
+  transform: scale(1.12);
+}
+
+/* ============================
+   Score Circle Pulse (for high scores)
+   ============================ */
+.score-pulse {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+/* ============================
+   Transcript Bubble Entrance
+   ============================ */
+.transcript-bubble {
+  animation: fadeInUp 0.3s ease-out both;
+}
+
+/* ============================
+   Card Section Animation
+   ============================ */
+.card-animated {
+  animation: fadeInUp 0.4s ease-out both;
+}
+
+/* ============================
+   Icon Spin on Hover
+   ============================ */
+.icon-spin-hover:hover .anticon {
+  transition: transform 0.3s ease;
+  transform: rotate(90deg);
+}
+
+/* ============================
+   Smooth Sidebar Collapse
+   ============================ */
+.ant-layout-sider {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* ============================
+   Alert Entrance
+   ============================ */
+.ant-alert {
+  animation: fadeInUp 0.3s ease-out both;
+}
+
+/* ============================
+   Message Pop-in
+   ============================ */
+.ant-message-notice {
+  animation: fadeInUp 0.25s ease-out both !important;
+}
+
+/* ============================
+   Tooltip Fade
+   ============================ */
+.ant-tooltip {
+  animation: fadeIn 0.15s ease-out !important;
+}
+
+/* ============================
+   Tabs Underline Transition
+   ============================ */
+.ant-tabs-ink-bar {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* ============================
+   Progress Circle Animation
+   ============================ */
+.ant-progress-circle .ant-progress-circle-trail {
+  transition: stroke-dashoffset 0.6s ease !important;
+}
+
+/* ============================
+   Skeleton Shimmer
+   ============================ */
+.ant-skeleton-content .ant-skeleton-title,
+.ant-skeleton-content .ant-skeleton-paragraph > li {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%) !important;
+  background-size: 200% 100% !important;
+  animation: shimmer 1.5s infinite !important;
+}
+
+/* ============================
+   Switch Toggle Polish
+   ============================ */
+.ant-switch {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.ant-switch:active {
+  transform: scale(0.95);
+}
+
+/* ============================
+   Dropdown Menu Polish
+   ============================ */
+.ant-dropdown-menu {
+  animation: fadeInUp 0.2s ease-out both !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+  overflow: hidden;
+}
+
+.ant-dropdown-menu-item {
+  transition: all 0.15s ease !important;
+  border-radius: 8px !important;
+  margin: 2px 4px !important;
+}
+
+.ant-dropdown-menu-item:hover {
+  background: #F0F4FF !important;
+}
+
+/* ============================
+   Pagination Hover
+   ============================ */
+.ant-pagination-item {
+  transition: all 0.2s ease !important;
+}
+
+.ant-pagination-item:hover {
+  transform: scale(1.05);
+}
+
+.ant-pagination-item-active {
+  border-color: #0112AA !important;
+  box-shadow: 0 2px 8px rgba(1, 18, 170, 0.15);
+}
+
+/* ============================
+   Browser Call OTP Styling
+   ============================ */
+.ant-otp-input {
+  font-size: 32px !important;
+  font-weight: 700 !important;
+  color: #000 !important;
+  background: #fff !important;
+  border-radius: 12px !important;
+  width: 56px !important;
+  height: 64px !important;
+}
