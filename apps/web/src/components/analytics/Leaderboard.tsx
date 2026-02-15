@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, Table, Typography } from "antd";
+import { useRouter } from "next/navigation";
 import type { ColumnsType } from "antd/es/table";
 import type { LeaderboardEntry } from "@repo/shared";
 import ScoreDisplay from "@/components/common/ScoreDisplay";
@@ -47,6 +48,8 @@ function RankBadge({ rank }: { rank: number }) {
 }
 
 export default function Leaderboard({ data, loading }: LeaderboardProps) {
+  const router = useRouter();
+
   const columns: ColumnsType<LeaderboardEntry & { rank: number }> = [
     {
       title: "Rank",
@@ -104,6 +107,10 @@ export default function Leaderboard({ data, loading }: LeaderboardProps) {
         loading={loading}
         size="middle"
         pagination={{ pageSize: 20, showSizeChanger: true }}
+        onRow={(record) => ({
+          style: { cursor: "pointer" },
+          onClick: () => router.push(`/users/${record.user_id}`),
+        })}
       />
     </Card>
   );
