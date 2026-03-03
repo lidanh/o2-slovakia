@@ -32,6 +32,7 @@ import {
   DownOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
+import ReactMarkdown from "react-markdown";
 import PageHeader from "@/components/common/PageHeader";
 import AddUsersDialog from "@/components/common/AddUsersDialog";
 import ScenarioForm from "@/components/scenarios/ScenarioForm";
@@ -402,24 +403,18 @@ export default function ScenarioDetailPage() {
                 Base Prompt
               </Text>
               <div
+                className="prompt-markdown"
                 style={{
                   background: "#F8F9FA",
                   borderRadius: 12,
                   padding: "16px 20px",
                   border: "1px solid #F0F0F0",
+                  fontSize: 13,
+                  lineHeight: 1.7,
+                  color: "#374151",
                 }}
               >
-                <Paragraph
-                  style={{
-                    margin: 0,
-                    whiteSpace: "pre-wrap",
-                    fontSize: 13,
-                    lineHeight: 1.7,
-                    color: "#374151",
-                  }}
-                >
-                  {scenario.prompt}
-                </Paragraph>
+                <ReactMarkdown>{scenario.prompt}</ReactMarkdown>
               </div>
             </div>
           </Card>
@@ -779,6 +774,37 @@ export default function ScenarioDetailPage() {
           }}
         />
       </Modal>
+
+      <style jsx global>{`
+        .prompt-markdown h1,
+        .prompt-markdown h2,
+        .prompt-markdown h3 {
+          margin: 0.8em 0 0.4em;
+          line-height: 1.3;
+          color: #1a1a2e;
+        }
+        .prompt-markdown h1 { font-size: 1.3em; }
+        .prompt-markdown h2 { font-size: 1.15em; }
+        .prompt-markdown h3 { font-size: 1.05em; }
+        .prompt-markdown h2:first-child,
+        .prompt-markdown h3:first-child {
+          margin-top: 0;
+        }
+        .prompt-markdown p {
+          margin: 0.4em 0;
+        }
+        .prompt-markdown ul,
+        .prompt-markdown ol {
+          padding-left: 1.4em;
+          margin: 0.3em 0;
+        }
+        .prompt-markdown li {
+          margin: 0.15em 0;
+        }
+        .prompt-markdown > *:last-child {
+          margin-bottom: 0;
+        }
+      `}</style>
     </>
   );
 }
