@@ -118,7 +118,7 @@ export default function ScenarioForm({ onSubmit, loading, initialValues, form: e
       description: values.description as string,
       prompt: values.prompt as string,
       type: values.type as "frontline" | "leadership",
-      agent_id: (values.agent_id as string) || undefined,
+      agent_id: (values.agent_id as string) || null,
       difficulty_levels: (values.difficulty_levels as CreateDifficultyLevelPayload[]) || [],
     };
     onSubmit(payload);

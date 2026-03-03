@@ -8,7 +8,7 @@ const CreateScenarioSchema = z.object({
   prompt: z.string().min(1),
   type: z.enum(["frontline", "leadership"]),
   is_active: z.boolean().optional().default(true),
-  agent_id: z.string().optional(),
+  agent_id: z.string().nullable().optional(),
   difficulty_levels: z
     .array(
       z.object({
