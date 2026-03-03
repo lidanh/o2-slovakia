@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "setup-env": "node scripts/setup-env.mjs",
-    "dev": "node server.mjs",
+    "dev": "next dev --turbopack -p 5050",
     "build": "next build",
-    "start": "NODE_ENV=production node server.mjs",
+    "start": "next start",
     "lint": "next lint --max-warnings 0",
     "type-check": "tsc --noEmit"
   },

@@ -405,10 +405,18 @@ export default function useBrowserCall(
         const wsHost = config.wonderfulHost
           .replace("https://", "wss://")
           .replace("http://", "ws://");
-        const params = new URLSearchParams({
-          agent_id: config.agentId,
-          // from: config.userName,
+        const params = new URLSearchParams({ agent_id: config.agentId });
+        const metadata = JSON.stringify({
+          otp: config.otp,
+          session_id: config.sessionId,
         });
+        params.set(
+          "metadata",
+          btoa(metadata)
+            .replace(/\+/g, "-")
+            .replace(/\//g, "_")
+            .replace(/=+$/, "")
+        );
         const wsUrl = `${wsHost}/telephony/websocket/call?${params}`;
 
         // Connection timeout
