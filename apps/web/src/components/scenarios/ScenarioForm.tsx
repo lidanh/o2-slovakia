@@ -7,6 +7,7 @@ import { Button } from "antd";
 import { useRouter } from "next/navigation";
 import type { CreateScenarioPayload, CreateDifficultyLevelPayload, WonderfulAgent } from "@repo/shared";
 import type { FormInstance } from "antd";
+import MarkdownEditor from "@/components/common/MarkdownEditor";
 
 const { TextArea } = Input;
 
@@ -283,7 +284,7 @@ export default function ScenarioForm({ onSubmit, loading, initialValues, form: e
                         label="Difficulty Prompt"
                         rules={[{ required: true, message: "Prompt is required" }]}
                       >
-                        <TextArea rows={3} placeholder="Additional prompt modifiers for this difficulty" />
+                        <MarkdownEditor height={200} placeholder="Additional prompt modifiers for this difficulty" />
                       </Form.Item>
 
                       <Form.Item
@@ -335,7 +336,7 @@ export default function ScenarioForm({ onSubmit, loading, initialValues, form: e
             </Form.Item>
 
             <Form.Item name="prompt" label="Base Prompt" rules={[{ required: true, message: "Prompt is required" }]}>
-              <TextArea rows={5} placeholder="Base prompt for the AI agent" />
+              <MarkdownEditor height={300} placeholder="Base prompt for the AI agent" />
             </Form.Item>
 
             <Form.Item name="type" label="Type" rules={[{ required: true }]}>
