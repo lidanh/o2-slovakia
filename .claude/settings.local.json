@@ -14,7 +14,8 @@
       "Bash(supabase projects:*)",
       "Bash(docker ps:*)",
       "Bash(xargs:*)",
-      "Bash(pnpm add:*)"
+      "Bash(pnpm add:*)",
+      "Bash(pnpm install:*)"
     ]
   }
 }
