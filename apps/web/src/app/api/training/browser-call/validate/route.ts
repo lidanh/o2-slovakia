@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     // Fetch session and verify it's still active
     const { data: session, error } = await supabase
       .from("training_sessions")
-      .select("*, scenario:scenarios(*), difficulty_level:difficulty_levels(*)")
+      .select("*, scenario:scenarios(*), difficulty_level:difficulty_levels(*), user:users(*)")
       .eq("id", payload.sessionId)
       .in("status", ["initiated", "in_progress"])
       .single();
@@ -94,6 +94,7 @@ export async function GET(request: NextRequest) {
       wonderfulHost,
       scenarioName: session.scenario?.name ?? "Unknown",
       difficultyName: session.difficulty_level?.name ?? "Default",
+      userName: session.user?.name ?? "Unknown",
     });
   } catch (err) {
     console.error("GET /api/training/browser-call/validate error:", err);

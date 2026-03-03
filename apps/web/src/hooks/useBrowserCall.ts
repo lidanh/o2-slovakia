@@ -22,6 +22,7 @@ interface SessionConfig {
   agentId: string;
   apiKey: string;
   wonderfulHost: string;
+  userName: string;
 }
 
 export interface InlineFeedback {
@@ -400,22 +401,14 @@ export default function useBrowserCall(
           };
         }
 
-        // Build WebSocket URL
+        // Connect via server-side proxy (resolves API key and adds X-API-KEY header)
         const wsHost = config.wonderfulHost
           .replace("https://", "wss://")
           .replace("http://", "ws://");
-        const params = new URLSearchParams({ agent_id: config.agentId });
-        const metadata = JSON.stringify({
-          otp: config.otp,
-          session_id: config.sessionId,
+        const params = new URLSearchParams({
+          agent_id: config.agentId,
+          // from: config.userName,
         });
-        params.set(
-          "metadata",
-          btoa(metadata)
-            .replace(/\+/g, "-")
-            .replace(/\//g, "_")
-            .replace(/=+$/, "")
-        );
         const wsUrl = `${wsHost}/telephony/websocket/call?${params}`;
 
         // Connection timeout
@@ -430,10 +423,7 @@ export default function useBrowserCall(
         // Connect WebSocket via Worker
         postToWorker({
           type: "connect",
-          payload: {
-            url: wsUrl,
-            protocols: ["apikey", config.apiKey],
-          },
+          payload: { url: wsUrl, protocols: ["apikey", config.apiKey] },
         });
       })
       .catch((err) => {
