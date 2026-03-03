@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Card, Tag, Typography, List, Row, Col, Space, Button, Spin, App } from "antd";
+import {
+  Card, Tag, Typography, List, Row, Col, Space, Button, Spin, App, Collapse, Progress,
+} from "antd";
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -10,27 +12,34 @@ import {
   ClockCircleOutlined,
   CalendarOutlined,
   FileSearchOutlined,
+  StarOutlined,
 } from "@ant-design/icons";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
   RadarChart,
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
   Radar,
+  ResponsiveContainer,
+  Tooltip,
 } from "recharts";
-import type { SessionWithDetails } from "@repo/shared";
-import { SESSION_STATUS_LABELS, SESSION_STATUS_COLORS, FEEDBACK_CATEGORIES } from "@repo/shared";
+import type { SessionWithDetails, FeedbackBreakdown } from "@repo/shared";
+import {
+  SESSION_STATUS_LABELS,
+  SESSION_STATUS_COLORS,
+  EVALUATION_CATEGORY_LABELS,
+  EVALUATION_CATEGORY_EMOJIS,
+} from "@repo/shared";
 import ScoreDisplay from "@/components/common/ScoreDisplay";
 import StarRating from "@/components/common/StarRating";
 
 const { Text, Paragraph } = Typography;
+
+const SCORE_TAG_CONFIG = {
+  passed: { color: "success", label: "Passed" },
+  partially_passed: { color: "warning", label: "Partial" },
+  failed: { color: "error", label: "Failed" },
+} as const;
 
 interface SessionDetailProps {
   session: SessionWithDetails;
@@ -63,24 +72,89 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
     }
   }
 
-  const breakdownData = session.feedback_breakdown
-    ? FEEDBACK_CATEGORIES.map((cat) => ({
-        category: cat.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-        value: session.feedback_breakdown?.[cat] ?? 0,
-        fullMark: 100,
-      }))
+  // Parse new FeedbackBreakdown format
+  const breakdown = session.feedback_breakdown as FeedbackBreakdown | null;
+  const hasNewFormat = breakdown?.categories != null;
+
+  // Build radar chart data from new format
+  const radarData = hasNewFormat
+    ? Object.entries(breakdown!.categories)
+        .filter(([key]) => key !== "wau_effect")
+        .map(([key, cat]) => ({
+          category: EVALUATION_CATEGORY_LABELS[key as keyof typeof EVALUATION_CATEGORY_LABELS] ?? key,
+          value: cat.score_percentage,
+          fullMark: 100,
+        }))
     : [];
 
   const duration = session.call_duration
     ? `${Math.floor(session.call_duration / 60)}:${String(session.call_duration % 60).padStart(2, "0")}`
-    : "—";
+    : "\u2014";
 
   const infoItems = [
-    { icon: <UserOutlined />, label: "User", value: session.user?.name ?? "—", gradient: "linear-gradient(135deg, #0112AA, #2563EB)" },
-    { icon: <FileTextOutlined />, label: "Scenario", value: session.scenario?.name ?? "—", gradient: "linear-gradient(135deg, #7C3AED, #A78BFA)" },
+    { icon: <UserOutlined />, label: "User", value: session.user?.name ?? "\u2014", gradient: "linear-gradient(135deg, #0112AA, #2563EB)" },
+    { icon: <FileTextOutlined />, label: "Scenario", value: session.scenario?.name ?? "\u2014", gradient: "linear-gradient(135deg, #7C3AED, #A78BFA)" },
     { icon: <ClockCircleOutlined />, label: "Duration", value: duration, gradient: "linear-gradient(135deg, #059669, #34D399)" },
     { icon: <CalendarOutlined />, label: "Date", value: new Date(session.created_at).toLocaleString("sk-SK"), gradient: "linear-gradient(135deg, #2563EB, #60A5FA)" },
   ];
+
+  // Build collapse items for category breakdown
+  const collapseItems = hasNewFormat
+    ? Object.entries(breakdown!.categories).map(([key, cat]) => {
+        const emoji = EVALUATION_CATEGORY_EMOJIS[key as keyof typeof EVALUATION_CATEGORY_EMOJIS] ?? "";
+        const label = EVALUATION_CATEGORY_LABELS[key as keyof typeof EVALUATION_CATEGORY_LABELS] ?? key;
+        const weightLabel = key === "wau_effect"
+          ? "Bonus"
+          : `${Math.round(cat.weight * 100)}%`;
+
+        return {
+          key,
+          label: (
+            <div style={{ display: "flex", alignItems: "center", gap: 12, width: "100%" }}>
+              <span style={{ fontSize: 18 }}>{emoji}</span>
+              <Text strong style={{ flex: 1 }}>{label}</Text>
+              <Tag style={{ margin: 0 }}>{weightLabel}</Tag>
+              <Progress
+                percent={cat.score_percentage}
+                size="small"
+                style={{ width: 120, margin: 0 }}
+                strokeColor={cat.score_percentage >= 75 ? "#059669" : cat.score_percentage >= 50 ? "#D97706" : "#EF4444"}
+              />
+            </div>
+          ),
+          children: (
+            <div>
+              {cat.items.map((item) => {
+                const tagConfig = SCORE_TAG_CONFIG[item.score] ?? SCORE_TAG_CONFIG.failed;
+                return (
+                  <div
+                    key={item.key}
+                    style={{
+                      display: "flex",
+                      gap: 12,
+                      padding: "12px 0",
+                      borderBottom: "1px solid #F0F0F0",
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    <Tag color={tagConfig.color} style={{ flexShrink: 0, marginTop: 2 }}>
+                      {tagConfig.label}
+                    </Tag>
+                    <div style={{ flex: 1 }}>
+                      <Text strong style={{ fontSize: 13, display: "block" }}>{item.label}</Text>
+                      <Text style={{ fontSize: 12, color: "#6B7280" }}>{item.feedback}</Text>
+                    </div>
+                    <Text style={{ fontSize: 12, color: "#9CA3AF", flexShrink: 0 }}>
+                      {item.earned_points}/{item.max_points}
+                    </Text>
+                  </div>
+                );
+              })}
+            </div>
+          ),
+        };
+      })
+    : [];
 
   return (
     <>
@@ -103,15 +177,10 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div
                       style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 10,
+                        width: 36, height: 36, borderRadius: 10,
                         background: item.gradient,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#fff",
-                        fontSize: 16,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        color: "#fff", fontSize: 16,
                       }}
                     >
                       {item.icon}
@@ -137,47 +206,33 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
               session.status === "completed" ? (
                 <Space direction="vertical" size="middle" align="center" style={{ width: "100%" }}>
                   <FileSearchOutlined style={{ fontSize: 32, color: "#9CA3AF" }} />
-                  <Text style={{ fontSize: 14, color: "#6B7280" }}>
-                    Feedback not yet generated
-                  </Text>
-                  <Button
-                    type="primary"
-                    loading={generating}
-                    disabled={!canGenerateFeedback}
-                    onClick={handleGenerateFeedback}
-                  >
+                  <Text style={{ fontSize: 14, color: "#6B7280" }}>Feedback not yet generated</Text>
+                  <Button type="primary" loading={generating} disabled={!canGenerateFeedback} onClick={handleGenerateFeedback}>
                     {generating ? "Generating..." : "Generate Feedback"}
                   </Button>
-                  <Text style={{ fontSize: 12, color: "#9CA3AF" }}>
-                    This may take a few seconds
-                  </Text>
+                  <Text style={{ fontSize: 12, color: "#9CA3AF" }}>This may take a few seconds</Text>
                 </Space>
               ) : (
                 <Space direction="vertical" size="middle" align="center" style={{ width: "100%" }}>
                   <Spin size="small" />
-                  <Text style={{ fontSize: 14, color: "#6B7280" }}>
-                    Waiting for call to complete...
-                  </Text>
+                  <Text style={{ fontSize: 14, color: "#6B7280" }}>Waiting for call to complete...</Text>
                 </Space>
               )
             ) : (
               <Space direction="vertical" size="large" align="center">
                 <div>
-                  <Text style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", color: "#6b7280" }}>
-                    Score
-                  </Text>
-                  <div style={{ marginTop: 8 }}>
-                    <ScoreDisplay score={session.score} />
-                  </div>
+                  <Text style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", color: "#6b7280" }}>Score</Text>
+                  <div style={{ marginTop: 8 }}><ScoreDisplay score={session.score} /></div>
                 </div>
                 <div>
-                  <Text style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", color: "#6b7280" }}>
-                    Rating
-                  </Text>
-                  <div style={{ marginTop: 8 }}>
-                    <StarRating rating={session.star_rating} />
-                  </div>
+                  <Text style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", color: "#6b7280" }}>Rating</Text>
+                  <div style={{ marginTop: 8 }}><StarRating rating={session.star_rating} /></div>
                 </div>
+                {hasNewFormat && breakdown!.wau_bonus_percentage > 0 && (
+                  <Tag icon={<StarOutlined />} color="gold" style={{ fontSize: 13, padding: "4px 12px" }}>
+                    WAU Bonus: +{breakdown!.wau_bonus_percentage}%
+                  </Tag>
+                )}
               </Space>
             )}
           </Card>
@@ -192,49 +247,31 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
         </Card>
       )}
 
-      {breakdownData.length > 0 && (
+      {hasNewFormat && collapseItems.length > 0 && (
         <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
-          <Col xs={24} lg={12}>
-            <Card title="Performance Radar" variant="borderless" styles={{ body: { padding: "16px 24px 24px" } }}>
-              <ResponsiveContainer width="100%" height={300}>
-                <RadarChart data={breakdownData}>
-                  <PolarGrid stroke="#E5E7EB" />
-                  <PolarAngleAxis dataKey="category" tick={{ fontSize: 11, fill: "#6b7280" }} />
-                  <PolarRadiusAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "#9CA3AF" }} />
-                  <Radar
-                    dataKey="value"
-                    stroke="#0112AA"
-                    fill="#0112AA"
-                    fillOpacity={0.15}
-                    strokeWidth={2}
-                  />
-                  <Tooltip
-                    contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 4px 20px rgba(0,0,0,0.1)", fontSize: 13 }}
-                  />
-                </RadarChart>
-              </ResponsiveContainer>
+          <Col xs={24} lg={14}>
+            <Card title="Category Breakdown" variant="borderless">
+              <Collapse
+                ghost
+                items={collapseItems}
+                defaultActiveKey={[]}
+              />
             </Card>
           </Col>
-          <Col xs={24} lg={12}>
-            <Card title="Score Breakdown" variant="borderless" styles={{ body: { padding: "16px 24px 24px" } }}>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={breakdownData} layout="vertical">
-                  <defs>
-                    <linearGradient id="detailBarGradient" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#0112AA" />
-                      <stop offset="100%" stopColor="#2563EB" />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" horizontal={false} />
-                  <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={{ stroke: "#F0F0F0" }} tickLine={false} />
-                  <YAxis type="category" dataKey="category" width={120} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 4px 20px rgba(0,0,0,0.1)", fontSize: 13 }}
-                  />
-                  <Bar dataKey="value" fill="url(#detailBarGradient)" radius={[0, 6, 6, 0]} barSize={24} />
-                </BarChart>
-              </ResponsiveContainer>
-            </Card>
+          <Col xs={24} lg={10}>
+            {radarData.length > 0 && (
+              <Card title="Performance Radar" variant="borderless" styles={{ body: { padding: "16px 24px 24px" } }}>
+                <ResponsiveContainer width="100%" height={300}>
+                  <RadarChart data={radarData}>
+                    <PolarGrid stroke="#E5E7EB" />
+                    <PolarAngleAxis dataKey="category" tick={{ fontSize: 10, fill: "#6b7280" }} />
+                    <PolarRadiusAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "#9CA3AF" }} />
+                    <Radar dataKey="value" stroke="#0112AA" fill="#0112AA" fillOpacity={0.15} strokeWidth={2} />
+                    <Tooltip contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 4px 20px rgba(0,0,0,0.1)", fontSize: 13 }} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </Card>
+            )}
           </Col>
         </Row>
       )}
@@ -246,21 +283,7 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
             renderItem={(item, idx) => (
               <List.Item style={{ padding: "12px 0", borderBottom: idx < session.suggestions!.length - 1 ? "1px solid #F0F0F0" : "none" }}>
                 <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  <div
-                    style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: 8,
-                      background: "linear-gradient(135deg, #EEF2FF, #E0E7FF)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: "#0112AA",
-                      flexShrink: 0,
-                    }}
-                  >
+                  <div style={{ width: 24, height: 24, borderRadius: 8, background: "linear-gradient(135deg, #EEF2FF, #E0E7FF)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#0112AA", flexShrink: 0 }}>
                     {idx + 1}
                   </div>
                   <Text style={{ fontSize: 14, lineHeight: 1.6, color: "#374151" }}>{item}</Text>
@@ -274,15 +297,7 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
       {session.highlights && session.highlights.length > 0 && (
         <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
           <Col xs={24} lg={12}>
-            <Card
-              variant="borderless"
-              title={
-                <Space>
-                  <CheckCircleOutlined style={{ color: "#059669" }} />
-                  <span>Positive Highlights</span>
-                </Space>
-              }
-            >
+            <Card variant="borderless" title={<Space><CheckCircleOutlined style={{ color: "#059669" }} /><span>Positive Highlights</span></Space>}>
               <List
                 dataSource={session.highlights.filter((h) => h.type === "positive")}
                 renderItem={(item) => (
@@ -298,15 +313,7 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
             </Card>
           </Col>
           <Col xs={24} lg={12}>
-            <Card
-              variant="borderless"
-              title={
-                <Space>
-                  <CloseCircleOutlined style={{ color: "#EF4444" }} />
-                  <span>Areas for Improvement</span>
-                </Space>
-              }
-            >
+            <Card variant="borderless" title={<Space><CloseCircleOutlined style={{ color: "#EF4444" }} /><span>Areas for Improvement</span></Space>}>
               <List
                 dataSource={session.highlights.filter((h) => h.type === "negative")}
                 renderItem={(item) => (
@@ -340,27 +347,14 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
               >
                 <div
                   style={{
-                    maxWidth: "70%",
-                    padding: "12px 16px",
+                    maxWidth: "70%", padding: "12px 16px",
                     borderRadius: entry.role === "agent" ? "4px 16px 16px 16px" : "16px 4px 16px 16px",
-                    background: entry.role === "agent"
-                      ? "#F3F4F6"
-                      : "linear-gradient(135deg, #0112AA, #2563EB)",
+                    background: entry.role === "agent" ? "#F3F4F6" : "linear-gradient(135deg, #0112AA, #2563EB)",
                     color: entry.role === "agent" ? "#374151" : "#fff",
-                    boxShadow: entry.role === "agent"
-                      ? "none"
-                      : "0 2px 8px rgba(1, 18, 170, 0.2)",
+                    boxShadow: entry.role === "agent" ? "none" : "0 2px 8px rgba(1, 18, 170, 0.2)",
                   }}
                 >
-                  <Text
-                    strong
-                    style={{
-                      fontSize: 11,
-                      display: "block",
-                      marginBottom: 4,
-                      color: entry.role === "agent" ? "#9CA3AF" : "rgba(255,255,255,0.7)",
-                    }}
-                  >
+                  <Text strong style={{ fontSize: 11, display: "block", marginBottom: 4, color: entry.role === "agent" ? "#9CA3AF" : "rgba(255,255,255,0.7)" }}>
                     {entry.role === "agent" ? "AI Agent" : "Customer (User)"}
                   </Text>
                   <Text style={{ color: entry.role === "agent" ? "#374151" : "#fff", fontSize: 13, lineHeight: 1.6 }}>

@@ -98,10 +98,36 @@ export const O2_COLORS = {
 
 export const DEFAULT_PAGE_SIZE = 20;
 export const MAX_BULK_CALL_SIZE = 50;
-export const FEEDBACK_CATEGORIES = [
-  "communication",
+export const EVALUATION_CATEGORIES = [
+  "communication_standards",
   "active_listening",
-  "empathy",
-  "problem_solving",
-  "confidence",
+  "solution",
+  "attitude",
+  "sales",
+  "wau_effect",
 ] as const;
+
+export type EvaluationCategoryKey = (typeof EVALUATION_CATEGORIES)[number];
+
+// Category display names for UI
+export const EVALUATION_CATEGORY_LABELS: Record<EvaluationCategoryKey, string> = {
+  communication_standards: "Standards & Communication",
+  active_listening: "Active Listening & Perception",
+  solution: "Solution",
+  attitude: "Attitude",
+  sales: "Sales",
+  wau_effect: "WAU Effect",
+};
+
+export const EVALUATION_CATEGORY_EMOJIS: Record<EvaluationCategoryKey, string> = {
+  communication_standards: "\uD83E\uDDED",
+  active_listening: "\uD83D\uDC42",
+  solution: "\u2699\uFE0F",
+  attitude: "\uD83D\uDCAC",
+  sales: "\uD83D\uDCA1",
+  wau_effect: "\uD83C\uDF1F",
+};
+
+// Keep old constant for reference during migration, but mark deprecated
+/** @deprecated Use EVALUATION_CATEGORIES instead */
+export const FEEDBACK_CATEGORIES = EVALUATION_CATEGORIES;

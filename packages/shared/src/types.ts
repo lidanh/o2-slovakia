@@ -119,13 +119,29 @@ export type CallType = "phone" | "browser";
 // Nested / JSONB Types
 // ============================================================
 
+export type ItemScore = "passed" | "partially_passed" | "failed";
+
+export interface FeedbackItemResult {
+  key: string;
+  label: string;
+  score: ItemScore;
+  max_points: number;
+  earned_points: number;
+  feedback: string;
+}
+
+export interface FeedbackCategoryResult {
+  weight: number;
+  score_percentage: number;
+  items: FeedbackItemResult[];
+  highlights: SessionHighlight[];
+  suggestions: string[];
+}
+
 export interface FeedbackBreakdown {
-  communication: number;
-  active_listening: number;
-  empathy: number;
-  problem_solving: number;
-  confidence: number;
-  [key: string]: number;
+  categories: Record<string, FeedbackCategoryResult>;
+  wau_bonus_percentage: number;
+  sales_included: boolean;
 }
 
 export interface SessionHighlight {
@@ -150,7 +166,7 @@ export interface CreateScenarioPayload {
   prompt: string;
   type: ScenarioType;
   is_active?: boolean;
-  agent_id?: string;
+  agent_id?: string | null;
   difficulty_levels?: CreateDifficultyLevelPayload[];
 }
 

@@ -81,8 +81,9 @@ export async function POST(
     const scenarioName = parsed.data.scenarioName ?? session.scenario?.name ?? "Unknown";
     const difficultyName = parsed.data.difficultyName ?? session.difficulty_level?.name ?? "Default";
     const scenarioPrompt = session.scenario?.prompt ?? session.scenario?.description ?? undefined;
+    const scenarioType = (session.scenario?.type ?? "frontline") as "frontline" | "leadership";
 
-    const feedback = await generateFeedback(transcript, scenarioName, difficultyName, scenarioPrompt);
+    const feedback = await generateFeedback(transcript, scenarioName, difficultyName, scenarioType, scenarioPrompt);
 
     const { data, error } = await supabase
       .from("training_sessions")

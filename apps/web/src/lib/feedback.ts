@@ -89,10 +89,12 @@ export async function generateSessionFeedback(
 
   // 6. Generate feedback via LLM
   const scenarioPrompt = session.scenario?.prompt ?? session.scenario?.description ?? undefined;
+  const scenarioType = (session.scenario?.type ?? "frontline") as "frontline" | "leadership";
   const feedback = await generateFeedback(
     transcript,
     session.scenario?.name ?? "Unknown",
     session.difficulty_level?.name ?? "Default",
+    scenarioType,
     scenarioPrompt
   );
 

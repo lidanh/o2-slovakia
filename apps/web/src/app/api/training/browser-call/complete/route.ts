@@ -123,10 +123,12 @@ export async function POST(request: NextRequest) {
     if (transcript.length > 0) {
       try {
         const scenarioPrompt = session.scenario?.prompt ?? session.scenario?.description ?? undefined;
+        const scenarioType = (session.scenario?.type ?? "frontline") as "frontline" | "leadership";
         feedbackResult = await generateFeedback(
           transcript,
           session.scenario?.name ?? "Unknown",
           session.difficulty_level?.name ?? "Default",
+          scenarioType,
           scenarioPrompt
         );
 
