@@ -7,12 +7,15 @@ import { useState } from "react";
 interface CallTriggerButtonProps {
   assignmentId: string;
   disabled?: boolean;
+  /** When true, browser call navigates to the call page instead of copying a link */
+  selfService?: boolean;
   onSuccess?: () => void;
 }
 
 export default function CallTriggerButton({
   assignmentId,
   disabled,
+  selfService,
   onSuccess,
 }: CallTriggerButtonProps) {
   const [loading, setLoading] = useState(false);
@@ -36,7 +39,7 @@ export default function CallTriggerButton({
     }
   }
 
-  async function handleShareLink() {
+  async function handleBrowserCall() {
     setLoading(true);
     try {
       const res = await fetch("/api/training/browser-call", {
@@ -46,9 +49,13 @@ export default function CallTriggerButton({
       });
       if (!res.ok) throw new Error("Failed to create browser call");
       const data = await res.json();
-      const fullUrl = `${window.location.origin}${data.callUrl}`;
-      await navigator.clipboard.writeText(fullUrl);
-      message.success("Link copied to clipboard!");
+      if (selfService) {
+        window.open(data.callUrl, "_blank");
+      } else {
+        const fullUrl = `${window.location.origin}${data.callUrl}`;
+        await navigator.clipboard.writeText(fullUrl);
+        message.success("Link copied to clipboard!");
+      }
       onSuccess?.();
     } catch {
       message.error("Failed to generate link");
@@ -69,9 +76,9 @@ export default function CallTriggerButton({
           },
           {
             key: "browser",
-            label: "Share a Link",
+            label: selfService ? "Browser Call" : "Share a Link",
             icon: <LinkOutlined />,
-            onClick: handleShareLink,
+            onClick: handleBrowserCall,
           },
         ],
       }}
