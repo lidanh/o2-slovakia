@@ -7,11 +7,7 @@ INSERT INTO teams (id, name, description) VALUES
   ('a1000000-0000-0000-0000-000000000001', 'Sales Team Alpha', 'Primary sales team for internet products'),
   ('a1000000-0000-0000-0000-000000000002', 'Sales Team Beta', 'Secondary sales team');
 
--- Users
-INSERT INTO users (id, name, email, phone, team_id) VALUES
-  ('b1000000-0000-0000-0000-000000000001', 'Ján Novák', 'jan.novak@o2.sk', '+421901000001', 'a1000000-0000-0000-0000-000000000001'),
-  ('b1000000-0000-0000-0000-000000000002', 'Mária Kováčová', 'maria.kovacova@o2.sk', '+421901000002', 'a1000000-0000-0000-0000-000000000001'),
-  ('b1000000-0000-0000-0000-000000000003', 'Peter Horváth', 'peter.horvath@o2.sk', '+421901000003', 'a1000000-0000-0000-0000-000000000002');
+-- Note: Users are created through the invite flow (FK to auth.users required)
 
 -- Scenario 1: Internet Upsell Inbound (frontline)
 INSERT INTO scenarios (id, name, description, prompt, type, agent_id) VALUES

@@ -12,6 +12,7 @@ interface TeamRow {
   id: string;
   name: string;
   description: string | null;
+  parent_team_id: string | null;
   created_at: string;
   updated_at: string;
   member_count?: number;

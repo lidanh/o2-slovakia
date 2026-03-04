@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
+import { requireRole } from "@/lib/auth/authorize";
 
 const CreateScenarioSchema = z.object({
   name: z.string().min(1),
@@ -25,6 +26,9 @@ const CreateScenarioSchema = z.object({
 
 export async function GET() {
   try {
+    const auth = await requireRole("admin", "team_manager");
+    if (auth.error) return auth.error;
+
     const supabase = createServiceClient();
     const { data, error } = await supabase
       .from("scenarios")
@@ -40,6 +44,9 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
+
     const body = await request.json();
     const parsed = CreateScenarioSchema.safeParse(body);
     if (!parsed.success) {

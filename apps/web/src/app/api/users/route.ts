@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
+import { requireRole, getAccessibleTeamIds } from "@/lib/auth/authorize";
 
 const CreateUserSchema = z.object({
   name: z.string().min(1),
@@ -11,11 +12,22 @@ const CreateUserSchema = z.object({
 
 export async function GET() {
   try {
+    const auth = await requireRole("admin", "team_manager");
+    if (auth.error) return auth.error;
+
     const supabase = createServiceClient();
-    const { data, error } = await supabase
+    const teamIds = await getAccessibleTeamIds(auth.user);
+
+    let query = supabase
       .from("users")
       .select("*, team:teams(*)")
       .order("created_at", { ascending: false });
+
+    if (teamIds) {
+      query = query.in("team_id", teamIds);
+    }
+
+    const { data, error } = await query;
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json(data);
@@ -26,6 +38,9 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
+
     const body = await request.json();
     const parsed = CreateUserSchema.safeParse(body);
     if (!parsed.success) {

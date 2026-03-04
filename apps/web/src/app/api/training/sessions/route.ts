@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { getAuthUser, getAccessibleTeamIds } from "@/lib/auth/authorize";
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await getAuthUser();
+    if (auth.error) return auth.error;
+
     const supabase = createServiceClient();
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
@@ -21,6 +25,21 @@ export async function GET(request: NextRequest) {
     if (userId) query = query.eq("user_id", userId);
     if (scenarioId) query = query.eq("scenario_id", scenarioId);
     if (status) query = query.eq("status", status);
+
+    // Role-based scoping: admin=all, team_manager=own team users, user=own only
+    if (auth.user.role === "user") {
+      query = query.eq("user_id", auth.user.id);
+    } else if (auth.user.role === "team_manager") {
+      const teamIds = await getAccessibleTeamIds(auth.user);
+      if (teamIds) {
+        const { data: teamUsers } = await supabase
+          .from("users")
+          .select("id")
+          .in("team_id", teamIds);
+        const userIds = (teamUsers ?? []).map((u) => u.id);
+        query = query.in("user_id", userIds);
+      }
+    }
 
     const { data, error, count } = await query
       .order("created_at", { ascending: false })

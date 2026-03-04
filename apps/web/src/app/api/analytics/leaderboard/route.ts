@@ -2,22 +2,45 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { isValidScore, averageScore } from "@repo/shared";
 import type { LeaderboardEntry } from "@repo/shared";
+import { requireRole, getAccessibleTeamIds } from "@/lib/auth/authorize";
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireRole("admin", "team_manager");
+    if (auth.error) return auth.error;
+
     const limit = Number(request.nextUrl.searchParams.get("limit")) || 10;
     const supabase = createServiceClient();
+    const teamIds = await getAccessibleTeamIds(auth.user);
 
-    const { data: sessions, error: sError } = await supabase
+    // If team_manager, get user IDs in accessible teams
+    let scopedUserIds: string[] | null = null;
+    if (teamIds) {
+      const { data: teamUsers } = await supabase
+        .from("users")
+        .select("id")
+        .in("team_id", teamIds);
+      scopedUserIds = (teamUsers ?? []).map((u) => u.id);
+    }
+
+    let sessionsQuery = supabase
       .from("training_sessions")
       .select("user_id, score, star_rating, status")
       .eq("status", "completed");
 
+    if (scopedUserIds) {
+      sessionsQuery = sessionsQuery.in("user_id", scopedUserIds);
+    }
+
+    const { data: sessions, error: sError } = await sessionsQuery;
+
     if (sError) return NextResponse.json({ error: sError.message }, { status: 500 });
 
-    const { data: users } = await supabase
-      .from("users")
-      .select("id, name, team:teams(name)");
+    let usersQuery = supabase.from("users").select("id, name, team:teams(name)");
+    if (scopedUserIds) {
+      usersQuery = usersQuery.in("id", scopedUserIds);
+    }
+    const { data: users } = await usersQuery;
 
     const userMap = new Map(
       (users ?? []).map((u: Record<string, unknown>) => {

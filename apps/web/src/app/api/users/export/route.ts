@@ -1,14 +1,26 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { generateXlsx } from "@/lib/export";
+import { requireRole, getAccessibleTeamIds } from "@/lib/auth/authorize";
 
 export async function GET() {
   try {
+    const auth = await requireRole("admin", "team_manager");
+    if (auth.error) return auth.error;
+
     const supabase = createServiceClient();
-    const { data: users, error } = await supabase
+    const teamIds = await getAccessibleTeamIds(auth.user);
+
+    let query = supabase
       .from("users")
       .select("*, team:teams(name)")
       .order("name");
+
+    if (teamIds) {
+      query = query.in("team_id", teamIds);
+    }
+
+    const { data: users, error } = await query;
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { isValidScore, averageScore } from "@repo/shared";
+import { requireRole, getAccessibleTeamIds } from "@/lib/auth/authorize";
 
 interface Member {
   id: string;
@@ -19,7 +20,17 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireRole("admin", "team_manager");
+    if (auth.error) return auth.error;
+
     const { id } = await params;
+
+    // Check team access for non-admin users
+    const teamIds = await getAccessibleTeamIds(auth.user);
+    if (teamIds && !teamIds.includes(id)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const supabase = createServiceClient();
 
     const { data: team, error } = await supabase

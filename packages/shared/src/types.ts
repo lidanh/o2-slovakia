@@ -6,16 +6,24 @@ export interface Team {
   id: string;
   name: string;
   description: string | null;
+  parent_team_id: string | null;
   created_at: string;
   updated_at: string;
 }
+
+export type UserRole = "admin" | "team_manager" | "user";
+export type UserStatus = "invited" | "active";
 
 export interface User {
   id: string;
   name: string;
   email: string;
-  phone: string;
+  phone: string | null;
+  role: UserRole;
+  status: UserStatus;
   team_id: string | null;
+  avatar_url: string | null;
+  invited_by: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -58,6 +66,7 @@ export interface Assignment {
   user_id: string;
   scenario_id: string;
   difficulty_level_id: string;
+  assigned_by: string | null;
   status: AssignmentStatus;
   created_at: string;
 }
@@ -188,10 +197,11 @@ export interface CreateDifficultyLevelPayload {
   sort_order: number;
 }
 
-export interface CreateUserPayload {
+export interface InviteUserPayload {
   name: string;
   email: string;
-  phone: string;
+  phone?: string;
+  role: UserRole;
   team_id?: string;
 }
 
@@ -199,17 +209,20 @@ export interface UpdateUserPayload {
   name?: string;
   email?: string;
   phone?: string;
+  role?: UserRole;
   team_id?: string | null;
 }
 
 export interface CreateTeamPayload {
   name: string;
   description?: string;
+  parent_team_id?: string | null;
 }
 
 export interface UpdateTeamPayload {
   name?: string;
   description?: string;
+  parent_team_id?: string | null;
 }
 
 export interface CreateAssignmentsPayload {

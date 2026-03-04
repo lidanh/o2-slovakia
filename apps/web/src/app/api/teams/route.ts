@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
 import { isValidScore, averageScore } from "@repo/shared";
+import { requireRole, getAccessibleTeamIds } from "@/lib/auth/authorize";
 
 const CreateTeamSchema = z.object({
   name: z.string().min(1),
@@ -10,14 +11,25 @@ const CreateTeamSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireRole("admin", "team_manager");
+    if (auth.error) return auth.error;
+
     const { searchParams } = new URL(request.url);
     const withStats = searchParams.get("withStats") === "true";
 
     const supabase = createServiceClient();
-    const { data, error } = await supabase
+    const teamIds = await getAccessibleTeamIds(auth.user);
+
+    let query = supabase
       .from("teams")
       .select("*, members:users(*)")
       .order("created_at", { ascending: false });
+
+    if (teamIds) {
+      query = query.in("id", teamIds);
+    }
+
+    const { data, error } = await query;
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
@@ -92,6 +104,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
+
     const body = await request.json();
     const parsed = CreateTeamSchema.safeParse(body);
     if (!parsed.success) {

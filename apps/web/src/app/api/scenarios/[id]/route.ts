@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
+import { requireRole } from "@/lib/auth/authorize";
 
 const UpdateScenarioSchema = z.object({
   name: z.string().min(1).optional(),
@@ -28,6 +29,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireRole("admin", "team_manager");
+    if (auth.error) return auth.error;
+
     const { id } = await params;
     const supabase = createServiceClient();
     const { data, error } = await supabase
@@ -48,6 +52,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
+
     const { id } = await params;
     const body = await request.json();
     const parsed = UpdateScenarioSchema.safeParse(body);
@@ -121,6 +128,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
+
     const { id } = await params;
     const supabase = createServiceClient();
     const { error } = await supabase.from("scenarios").delete().eq("id", id);

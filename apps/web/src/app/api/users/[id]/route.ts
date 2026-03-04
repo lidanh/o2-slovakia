@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
+import { requireRole, getAccessibleTeamIds, getAuthUser } from "@/lib/auth/authorize";
 
 const UpdateUserSchema = z.object({
   name: z.string().min(1).optional(),
@@ -15,6 +16,30 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+
+    // All authenticated users can access: admin=any, team_manager=own team, user=self
+    const auth = await getAuthUser();
+    if (auth.error) return auth.error;
+
+    if (auth.user.role === "user" && auth.user.id !== id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    if (auth.user.role === "team_manager") {
+      const teamIds = await getAccessibleTeamIds(auth.user);
+      if (teamIds) {
+        const supabase = createServiceClient();
+        const { data: target } = await supabase
+          .from("users")
+          .select("team_id")
+          .eq("id", id)
+          .single();
+        if (!target || !target.team_id || !teamIds.includes(target.team_id)) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+      }
+    }
+
     const supabase = createServiceClient();
     const { data, error } = await supabase
       .from("users")
@@ -35,6 +60,26 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
+
+    // admin=any, team_manager=own team members only
+    const auth = await requireRole("admin", "team_manager");
+    if (auth.error) return auth.error;
+
+    if (auth.user.role === "team_manager") {
+      const teamIds = await getAccessibleTeamIds(auth.user);
+      if (teamIds) {
+        const supabase = createServiceClient();
+        const { data: target } = await supabase
+          .from("users")
+          .select("team_id")
+          .eq("id", id)
+          .single();
+        if (!target || !target.team_id || !teamIds.includes(target.team_id)) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+      }
+    }
+
     const body = await request.json();
     const parsed = UpdateUserSchema.safeParse(body);
     if (!parsed.success) {
@@ -61,6 +106,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
+
     const { id } = await params;
     const supabase = createServiceClient();
     const { error } = await supabase.from("users").delete().eq("id", id);

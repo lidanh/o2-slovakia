@@ -1,19 +1,41 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { requireRole, getAccessibleTeamIds } from "@/lib/auth/authorize";
 
 export async function GET() {
   try {
+    const auth = await requireRole("admin", "team_manager");
+    if (auth.error) return auth.error;
+
     const supabase = createServiceClient();
+    const teamIds = await getAccessibleTeamIds(auth.user);
+
+    // If team_manager, get user IDs in accessible teams
+    let scopedUserIds: string[] | null = null;
+    if (teamIds) {
+      const { data: teamUsers } = await supabase
+        .from("users")
+        .select("id")
+        .in("team_id", teamIds);
+      scopedUserIds = (teamUsers ?? []).map((u) => u.id);
+    }
+
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const { data: sessions, error } = await supabase
+    let sessionsQuery = supabase
       .from("training_sessions")
-      .select("score, created_at")
+      .select("score, created_at, user_id")
       .eq("status", "completed")
       .not("score", "is", null)
       .gt("score", 0)
       .gte("created_at", thirtyDaysAgo.toISOString());
+
+    if (scopedUserIds) {
+      sessionsQuery = sessionsQuery.in("user_id", scopedUserIds);
+    }
+
+    const { data: sessions, error } = await sessionsQuery;
 
     if (error) {
       throw error;

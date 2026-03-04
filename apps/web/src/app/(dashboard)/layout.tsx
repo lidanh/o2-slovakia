@@ -1,34 +1,48 @@
-"use client";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
+import { AuthProvider, type AuthUser } from "@/contexts/AuthContext";
+import DashboardShell from "@/components/layout/DashboardShell";
+import type { UserRole } from "@repo/shared";
 
-import { Layout } from "antd";
-import Sidebar from "@/components/layout/Sidebar";
-import AppHeader from "@/components/layout/AppHeader";
-import { usePathname } from "next/navigation";
-
-const { Content } = Layout;
-
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  let initialUser: AuthUser | null = null;
+
+  const service = createServiceClient();
+  const { data: profile } = await service
+    .from("users")
+    .select("name, role, team_id, avatar_url, phone")
+    .eq("id", user.id)
+    .single();
+
+  if (profile) {
+    initialUser = {
+      id: user.id,
+      email: user.email!,
+      name: profile.name,
+      role: profile.role as UserRole,
+      teamId: profile.team_id,
+      avatarUrl: profile.avatar_url,
+      phone: profile.phone,
+    };
+  }
 
   return (
-    <Layout style={{ minHeight: "100vh", background: "#FFFFFF" }}>
-      <Sidebar />
-      <Layout style={{ marginLeft: 260, background: "#FFFFFF" }}>
-        <AppHeader />
-        <Content
-          style={{
-            padding: "28px 40px 40px",
-            background: "#FFFFFF",
-            minHeight: "calc(100vh - 64px)",
-          }}
-        >
-          <div key={pathname} className="page-content">{children}</div>
-        </Content>
-      </Layout>
-    </Layout>
+    <AuthProvider initialUser={initialUser}>
+      <DashboardShell>{children}</DashboardShell>
+    </AuthProvider>
   );
 }

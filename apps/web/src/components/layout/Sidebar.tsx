@@ -11,13 +11,16 @@ import {
   BarChartOutlined,
   TrophyOutlined,
   SettingOutlined,
+  IdcardOutlined,
 } from "@ant-design/icons";
 import { usePathname, useRouter } from "next/navigation";
 import type { MenuProps } from "antd";
+import { useAuth } from "@/contexts/AuthContext";
+import type { UserRole } from "@repo/shared";
 
 const { Sider } = Layout;
 
-const menuItems: MenuProps["items"] = [
+const adminMenu: MenuProps["items"] = [
   { key: "/dashboard", icon: <DashboardOutlined />, label: "Dashboard" },
   { key: "/training", icon: <PhoneOutlined />, label: "Sessions" },
   { key: "/scenarios", icon: <FileTextOutlined />, label: "Scenarios" },
@@ -35,15 +38,67 @@ const menuItems: MenuProps["items"] = [
   { key: "/settings", icon: <SettingOutlined />, label: "Settings" },
 ];
 
+const managerMenu: MenuProps["items"] = [
+  {
+    key: "management",
+    type: "group",
+    label: "Management",
+    children: [
+      { key: "/dashboard", icon: <DashboardOutlined />, label: "Dashboard" },
+      { key: "/training", icon: <PhoneOutlined />, label: "Sessions" },
+      { key: "/users", icon: <UserOutlined />, label: "Team Members" },
+      {
+        key: "analytics-group",
+        icon: <BarChartOutlined />,
+        label: "Analytics",
+        children: [
+          { key: "/analytics", icon: <BarChartOutlined />, label: "Overview" },
+          { key: "/analytics/leaderboard", icon: <TrophyOutlined />, label: "Leaderboard" },
+        ],
+      },
+    ],
+  },
+  {
+    key: "personal",
+    type: "group",
+    label: "Personal",
+    children: [
+      { key: "/my-dashboard", icon: <DashboardOutlined />, label: "My Dashboard" },
+      { key: "/my-training", icon: <PhoneOutlined />, label: "My Training" },
+      { key: "/my-profile", icon: <IdcardOutlined />, label: "My Profile" },
+    ],
+  },
+];
+
+const userMenu: MenuProps["items"] = [
+  { key: "/my-dashboard", icon: <DashboardOutlined />, label: "My Dashboard" },
+  { key: "/my-training", icon: <PhoneOutlined />, label: "My Training" },
+  { key: "/my-profile", icon: <IdcardOutlined />, label: "My Profile" },
+];
+
+const menuByRole: Record<UserRole, MenuProps["items"]> = {
+  admin: adminMenu,
+  team_manager: managerMenu,
+  user: userMenu,
+};
+
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { user } = useAuth();
+
+  const menuItems = menuByRole[user?.role ?? "user"];
 
   const selectedKey =
     menuItems
       ?.flatMap((item) => {
         if (item && "children" in item && item.children) {
-          return item.children;
+          return item.children.flatMap((child) => {
+            if (child && "children" in child && child.children) {
+              return child.children;
+            }
+            return [child];
+          });
         }
         return [item];
       })

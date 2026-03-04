@@ -1,17 +1,32 @@
 "use client";
 
-import { Layout, Button, Dropdown, Typography, Flex } from "antd";
-import { LogoutOutlined, UserOutlined, BellOutlined } from "@ant-design/icons";
+import { Layout, Button, Dropdown, Typography, Flex, Tag } from "antd";
+import { LogoutOutlined, UserOutlined, BellOutlined, IdcardOutlined } from "@ant-design/icons";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import type { MenuProps } from "antd";
+import { useAuth } from "@/contexts/AuthContext";
+import type { UserRole } from "@repo/shared";
 
 const { Header } = Layout;
 const { Text } = Typography;
 
+const roleColors: Record<UserRole, string> = {
+  admin: "#0112AA",
+  team_manager: "#7C3AED",
+  user: "#059669",
+};
+
+const roleLabels: Record<UserRole, string> = {
+  admin: "Admin",
+  team_manager: "Manager",
+  user: "User",
+};
+
 export default function AppHeader() {
   const router = useRouter();
   const supabase = createClient();
+  const { user } = useAuth();
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -21,12 +36,22 @@ export default function AppHeader() {
 
   const items: MenuProps["items"] = [
     {
+      key: "profile",
+      icon: <IdcardOutlined />,
+      label: "My Profile",
+      onClick: () => router.push("/my-profile"),
+    },
+    {
       key: "logout",
       icon: <LogoutOutlined />,
       label: "Sign Out",
       onClick: handleLogout,
     },
   ];
+
+  const displayName = user?.name ?? "User";
+  const avatarLetter = displayName.charAt(0).toUpperCase();
+  const role = user?.role ?? "user";
 
   return (
     <Header
@@ -65,11 +90,20 @@ export default function AppHeader() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "#fff",
                 }}
               >
-                <UserOutlined style={{ fontSize: 14, color: "#fff" }} />
+                {avatarLetter}
               </div>
-              <Text style={{ color: "#374151", fontWeight: 500 }}>Admin</Text>
+              <Text style={{ color: "#374151", fontWeight: 500 }}>{displayName}</Text>
+              <Tag
+                color={roleColors[role]}
+                style={{ marginLeft: 4, marginRight: 0 }}
+              >
+                {roleLabels[role]}
+              </Tag>
             </Flex>
           </Button>
         </Dropdown>

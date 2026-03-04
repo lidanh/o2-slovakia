@@ -15,6 +15,6 @@ export const config = {
      * - public folder
      * - API routes that need to be accessible without auth
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|api/webhooks|api/wonderful|api/training/browser-call/validate|api/training/browser-call/complete|call/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|api/webhooks|api/wonderful|api/training/browser-call/validate|api/training/browser-call/complete|call/|auth/callback|auth/confirm|accept-invite|reset-password|forgot-password).*)",
   ],
 };

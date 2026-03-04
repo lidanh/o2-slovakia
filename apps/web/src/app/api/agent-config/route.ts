@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
+import { requireRole } from "@/lib/auth/authorize";
 
 const UpdateConfigSchema = z.object({
   config: z.record(z.unknown()),
@@ -8,6 +9,9 @@ const UpdateConfigSchema = z.object({
 
 export async function GET() {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
+
     const supabase = createServiceClient();
     const { data, error } = await supabase
       .from("agent_config")
@@ -30,6 +34,9 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
+
     const body = await request.json();
     const parsed = UpdateConfigSchema.safeParse(body);
     if (!parsed.success) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
 import { isValidScore, averageScore } from "@repo/shared";
+import { requireRole, getAccessibleTeamIds } from "@/lib/auth/authorize";
 
 const UpdateTeamSchema = z.object({
   name: z.string().min(1).optional(),
@@ -13,7 +14,17 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireRole("admin", "team_manager");
+    if (auth.error) return auth.error;
+
     const { id } = await params;
+
+    // Check team access for non-admin users
+    const teamIds = await getAccessibleTeamIds(auth.user);
+    if (teamIds && !teamIds.includes(id)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const supabase = createServiceClient();
     const { data, error } = await supabase
       .from("teams")
@@ -55,6 +66,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
+
     const { id } = await params;
     const body = await request.json();
     const parsed = UpdateTeamSchema.safeParse(body);
@@ -82,6 +96,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await requireRole("admin");
+    if (auth.error) return auth.error;
+
     const { id } = await params;
     const supabase = createServiceClient();
     const { error } = await supabase.from("teams").delete().eq("id", id);
