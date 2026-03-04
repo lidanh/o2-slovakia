@@ -91,12 +91,23 @@ export function aggregateFeedback(
   const finalScore = Math.min(100, Math.round(weightedScore + clampedBonus));
   const starRating = scoreToStarRating(finalScore);
 
-  // Merge all highlights and suggestions
+  // Merge all highlights
   const allHighlights: SessionHighlight[] = [];
-  const allSuggestions: string[] = [];
   for (const cat of Object.values(categories)) {
     allHighlights.push(...cat.highlights);
-    allSuggestions.push(...cat.suggestions);
+  }
+
+  // Collect suggestions prioritized by weakest categories (max 5)
+  const categoriesByScore = Object.entries(categories)
+    .filter(([key]) => key !== "wau_effect")
+    .sort((a, b) => a[1].score_percentage - b[1].score_percentage);
+  const allSuggestions: string[] = [];
+  for (const [, cat] of categoriesByScore) {
+    for (const s of cat.suggestions) {
+      if (allSuggestions.length >= 5) break;
+      allSuggestions.push(s);
+    }
+    if (allSuggestions.length >= 5) break;
   }
 
   // Generate summary from category results
