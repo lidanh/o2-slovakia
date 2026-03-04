@@ -55,7 +55,7 @@ export async function generateSessionFeedback(
       const commData = await getCommunication(session.communication_id, wonderful);
       // Wonderful API wraps response in { data: { ... }, status: 200 }
       const inner = (commData as { data?: Record<string, unknown> }).data ?? commData;
-      const transcriptions = (inner as { transcriptions?: { speaker?: string; text?: string; start_time?: number }[] }).transcriptions;
+      const transcriptions = (inner as { transcriptions?: { id?: string; speaker?: string; text?: string; start_time?: number }[] }).transcriptions;
 
       if (Array.isArray(transcriptions)) {
         transcript = transcriptions
@@ -64,6 +64,7 @@ export async function generateSessionFeedback(
             role: (t.speaker === "agent" ? "agent" : "customer") as "agent" | "customer",
             content: t.text ?? "",
             timestamp: t.start_time,
+            transcription_id: t.id,
           }));
       }
 

@@ -163,6 +163,7 @@ export interface TranscriptEntry {
   role: "agent" | "customer";
   content: string;
   timestamp?: number;
+  transcription_id?: string;
 }
 
 // ============================================================

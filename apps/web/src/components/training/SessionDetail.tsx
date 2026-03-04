@@ -13,6 +13,7 @@ import {
   CalendarOutlined,
   FileSearchOutlined,
   StarOutlined,
+  BugOutlined,
 } from "@ant-design/icons";
 import {
   RadarChart,
@@ -23,7 +24,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import type { SessionWithDetails, FeedbackBreakdown } from "@repo/shared";
+import type { SessionWithDetails, FeedbackBreakdown, TranscriptEntry } from "@repo/shared";
 import {
   SESSION_STATUS_LABELS,
   SESSION_STATUS_COLORS,
@@ -32,6 +33,7 @@ import {
 } from "@repo/shared";
 import ScoreDisplay from "@/components/common/ScoreDisplay";
 import StarRating from "@/components/common/StarRating";
+import ReportIssueDialog from "@/components/common/ReportIssueDialog";
 
 const { Text, Paragraph } = Typography;
 
@@ -48,6 +50,7 @@ interface SessionDetailProps {
 
 export default function SessionDetail({ session, onSessionUpdate }: SessionDetailProps) {
   const [generating, setGenerating] = useState(false);
+  const [issueEntry, setIssueEntry] = useState<TranscriptEntry | null>(null);
   const { message } = App.useApp();
 
   const canGenerateFeedback =
@@ -334,37 +337,68 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
       {session.transcript && session.transcript.length > 0 && (
         <Card title="Transcript" variant="borderless" style={{ marginTop: 20 }}>
           <div style={{ maxHeight: 500, overflowY: "auto", padding: "8px 0" }}>
-            {session.transcript.map((entry, i) => (
-              <div
-                key={i}
-                className="transcript-bubble"
-                style={{
-                  display: "flex",
-                  justifyContent: entry.role === "agent" ? "flex-start" : "flex-end",
-                  marginBottom: 16,
-                  animationDelay: `${Math.min(i * 50, 500)}ms`,
-                }}
-              >
+            {session.transcript.map((entry, i) => {
+              const showBug = !!session.communication_id && !!entry.transcription_id;
+              const bugBtn = showBug && (
+                <Button
+                  type="text"
+                  size="small"
+                  className="transcript-bug-btn"
+                  icon={<BugOutlined />}
+                  onClick={() => setIssueEntry(entry)}
+                  style={{ color: "#0112AA", marginTop: 4, flexShrink: 0, opacity: 0, transition: "opacity 0.2s" }}
+                />
+              );
+              return (
                 <div
+                  key={i}
+                  className="transcript-bubble transcript-row"
                   style={{
-                    maxWidth: "70%", padding: "12px 16px",
-                    borderRadius: entry.role === "agent" ? "4px 16px 16px 16px" : "16px 4px 16px 16px",
-                    background: entry.role === "agent" ? "#F3F4F6" : "linear-gradient(135deg, #0112AA, #2563EB)",
-                    color: entry.role === "agent" ? "#374151" : "#fff",
-                    boxShadow: entry.role === "agent" ? "none" : "0 2px 8px rgba(1, 18, 170, 0.2)",
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 4,
+                    justifyContent: entry.role === "agent" ? "flex-start" : "flex-end",
+                    marginBottom: 16,
+                    animationDelay: `${Math.min(i * 50, 500)}ms`,
                   }}
                 >
-                  <Text strong style={{ fontSize: 11, display: "block", marginBottom: 4, color: entry.role === "agent" ? "#9CA3AF" : "rgba(255,255,255,0.7)" }}>
-                    {entry.role === "agent" ? "AI Agent" : "Customer (User)"}
-                  </Text>
-                  <Text style={{ color: entry.role === "agent" ? "#374151" : "#fff", fontSize: 13, lineHeight: 1.6 }}>
-                    {entry.content}
-                  </Text>
+                  {entry.role === "customer" && bugBtn}
+                  <div
+                    style={{
+                      maxWidth: "70%", padding: "12px 16px",
+                      borderRadius: entry.role === "agent" ? "4px 16px 16px 16px" : "16px 4px 16px 16px",
+                      background: entry.role === "agent" ? "#F3F4F6" : "linear-gradient(135deg, #0112AA, #2563EB)",
+                      color: entry.role === "agent" ? "#374151" : "#fff",
+                      boxShadow: entry.role === "agent" ? "none" : "0 2px 8px rgba(1, 18, 170, 0.2)",
+                    }}
+                  >
+                    <Text strong style={{ fontSize: 11, display: "block", marginBottom: 4, color: entry.role === "agent" ? "#9CA3AF" : "rgba(255,255,255,0.7)" }}>
+                      {entry.role === "agent" ? "AI Agent" : "Customer (User)"}
+                    </Text>
+                    <Text style={{ color: entry.role === "agent" ? "#374151" : "#fff", fontSize: 13, lineHeight: 1.6 }}>
+                      {entry.content}
+                    </Text>
+                  </div>
+                  {entry.role === "agent" && bugBtn}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Card>
+      )}
+
+      {session.communication_id && issueEntry?.transcription_id && (
+        <ReportIssueDialog
+          open={!!issueEntry}
+          onClose={() => setIssueEntry(null)}
+          communicationId={session.communication_id}
+          transcriptionId={issueEntry.transcription_id}
+          category="wrong_answer"
+          transcriptContent={issueEntry.content}
+          sessionId={session.id}
+          scenarioName={session.scenario?.name}
+          difficultyName={session.difficulty_level?.name}
+        />
       )}
     </>
   );

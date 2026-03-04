@@ -1,12 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { Layout, Button, Dropdown, Typography, Flex, Tag } from "antd";
-import { LogoutOutlined, UserOutlined, BellOutlined, IdcardOutlined } from "@ant-design/icons";
+import { LogoutOutlined, UserOutlined, BellOutlined, IdcardOutlined, BugOutlined } from "@ant-design/icons";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import type { MenuProps } from "antd";
 import { useAuth } from "@/contexts/AuthContext";
 import type { UserRole } from "@repo/shared";
+import ReportIssueDialog from "@/components/common/ReportIssueDialog";
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -27,6 +29,7 @@ export default function AppHeader() {
   const router = useRouter();
   const supabase = createClient();
   const { user } = useAuth();
+  const [issueDialogOpen, setIssueDialogOpen] = useState(false);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -72,6 +75,12 @@ export default function AppHeader() {
       <Flex align="center" gap={8}>
         <Button
           type="text"
+          icon={<BugOutlined />}
+          onClick={() => setIssueDialogOpen(true)}
+          style={{ color: "#9CA3AF", width: 40, height: 40 }}
+        />
+        <Button
+          type="text"
           icon={<BellOutlined />}
           className="bell-btn"
           style={{ color: "#9CA3AF", width: 40, height: 40 }}
@@ -108,6 +117,14 @@ export default function AppHeader() {
           </Button>
         </Dropdown>
       </Flex>
+      <ReportIssueDialog
+        open={issueDialogOpen}
+        onClose={() => setIssueDialogOpen(false)}
+        communicationId="5086f6bc-ad18-4f67-93a4-3f022f785a11"
+        transcriptionId="cdde8a06-de70-42aa-87c9-77f94e6384b9"
+        category="ui_bug"
+        title="Report UI Issue"
+      />
     </Header>
   );
 }

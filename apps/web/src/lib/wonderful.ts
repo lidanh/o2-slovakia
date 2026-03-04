@@ -100,6 +100,34 @@ export async function makeOutboundCall(
  * Fetch the first active phone number for a Wonderful agent.
  * Returns the number string (e.g. "+97223763520") or null if none found.
  */
+export async function createIssue(
+  params: {
+    communicationId: string;
+    transcriptionId: string;
+    description: string;
+    category: string;
+  },
+  wonderfulConfig?: Partial<WonderfulConfig>
+): Promise<Record<string, unknown>> {
+  const config = getWonderfulConfig(wonderfulConfig);
+  return wonderfulFetch(
+    `/api/v1/communications/${params.communicationId}/${params.transcriptionId}/issues`,
+    config,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        assignees: ["30b10f10-1bf5-4382-8010-4a54fd0ab5f8"],
+        category: params.category,
+        description: params.description,
+        private: false,
+        root_cause: "other",
+        severity: 2,
+        status: "open",
+      }),
+    }
+  );
+}
+
 export async function getAgentPhoneNumber(
   agentId: string,
   wonderfulConfig?: Partial<WonderfulConfig>
