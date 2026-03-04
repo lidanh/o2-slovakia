@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   Card,
   Table,
@@ -44,6 +44,7 @@ const { Text } = Typography;
 export default function UserDetailPage() {
   const params = useParams();
   const id = params.id as string;
+  const router = useRouter();
   const { message } = App.useApp();
 
   const [user, setUser] = useState<UserWithTeam | null>(null);
@@ -356,6 +357,14 @@ export default function UserDetailPage() {
           rowKey="id"
           pagination={{ pageSize: 10 }}
           size="middle"
+          onRow={(record) => ({
+            style: record.status === "completed" ? { cursor: "pointer" } : undefined,
+            onClick: () => {
+              if (record.status === "completed") {
+                router.push(`/training/${record.id}`);
+              }
+            },
+          })}
         />
       </Card>
 

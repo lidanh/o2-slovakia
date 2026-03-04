@@ -3,20 +3,21 @@
 import { Form, Input, Select, Button, App } from "antd";
 import { useState, useEffect } from "react";
 import { isValidPhoneNumber } from "libphonenumber-js";
-import type { CreateUserPayload, Team } from "@repo/shared";
+import type { InviteUserPayload, Team, UserRole } from "@repo/shared";
 import type { FormInstance } from "antd";
 import PhoneInput from "@/components/common/PhoneInput";
 
 interface UserFormProps {
-  onSubmit: (values: CreateUserPayload) => void;
+  onSubmit: (values: InviteUserPayload) => void;
   loading?: boolean;
-  initialValues?: Partial<CreateUserPayload>;
+  initialValues?: Partial<InviteUserPayload>;
   form?: FormInstance;
   hideSubmitButton?: boolean;
   onValidityChange?: (valid: boolean) => void;
+  currentUserRole?: UserRole;
 }
 
-export default function UserForm({ onSubmit, loading, initialValues, form: externalForm, hideSubmitButton, onValidityChange }: UserFormProps) {
+export default function UserForm({ onSubmit, loading, initialValues, form: externalForm, hideSubmitButton, onValidityChange, currentUserRole }: UserFormProps) {
   const [internalForm] = Form.useForm();
   const form = externalForm || internalForm;
   const { message } = App.useApp();
@@ -43,17 +44,20 @@ export default function UserForm({ onSubmit, loading, initialValues, form: exter
     onSubmit({
       name: values.name as string,
       email: values.email as string,
-      phone: values.phone as string,
+      phone: values.phone as string | undefined,
+      role: (values.role as InviteUserPayload["role"]) || "user",
       team_id: values.team_id as string | undefined,
     });
   }
+
+  const isManager = currentUserRole === "team_manager";
 
   return (
     <Form
       form={form}
       layout="vertical"
       onFinish={handleFinish}
-      initialValues={initialValues}
+      initialValues={{ role: isManager ? "user" : undefined, ...initialValues }}
     >
       <Form.Item name="name" label="Name" rules={[{ required: true, message: "Name is required" }]}>
         <Input placeholder="Full name" />
@@ -74,16 +78,27 @@ export default function UserForm({ onSubmit, loading, initialValues, form: exter
         name="phone"
         label="Phone"
         rules={[
-          { required: true, message: "Phone is required" },
           {
             validator: (_, val) =>
-              val && isValidPhoneNumber(val)
+              !val || isValidPhoneNumber(val)
                 ? Promise.resolve()
                 : Promise.reject(new Error("Enter a valid phone number")),
           },
         ]}
       >
         <PhoneInput />
+      </Form.Item>
+
+      <Form.Item name="role" label="Role" rules={[{ required: true, message: "Role is required" }]}>
+        <Select
+          placeholder="Select role"
+          disabled={isManager}
+          options={[
+            { value: "admin", label: "Admin" },
+            { value: "team_manager", label: "Team Manager" },
+            { value: "user", label: "User" },
+          ]}
+        />
       </Form.Item>
 
       <Form.Item name="team_id" label="Team">

@@ -7,7 +7,8 @@ import PageHeader from "@/components/common/PageHeader";
 import ExportButton from "@/components/common/ExportButton";
 import UserTable from "@/components/users/UserTable";
 import UserForm from "@/components/users/UserForm";
-import type { UserWithTeam, CreateUserPayload } from "@repo/shared";
+import { useAuth } from "@/contexts/AuthContext";
+import type { UserWithTeam, InviteUserPayload } from "@repo/shared";
 
 export default function UsersPage() {
   const [users, setUsers] = useState<UserWithTeam[]>([]);
@@ -19,15 +20,20 @@ export default function UsersPage() {
   const [editingUser, setEditingUser] = useState<UserWithTeam | null>(null);
   const [form] = Form.useForm();
   const { message } = App.useApp();
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function fetchUsers() {
     setLoading(true);
     try {
-      const res = await fetch("/api/users?withTeam=true");
+      const params = new URLSearchParams({ withTeam: "true" });
+      if (user?.role === "team_manager" && user.teamId) {
+        params.set("teamId", user.teamId);
+      }
+      const res = await fetch(`/api/users?${params}`);
       if (!res.ok) throw new Error("Failed to fetch users");
       const data = await res.json();
       setUsers(data);
@@ -38,27 +44,27 @@ export default function UsersPage() {
     }
   }
 
-  async function handleCreateUser(values: CreateUserPayload) {
+  async function handleCreateUser(values: InviteUserPayload) {
     setSubmitting(true);
     try {
-      const res = await fetch("/api/users", {
+      const res = await fetch("/api/users/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
       });
-      if (!res.ok) throw new Error("Failed to create user");
-      message.success("User created");
+      if (!res.ok) throw new Error("Failed to invite user");
+      message.success("User invited");
       setModalOpen(false);
       form.resetFields();
       fetchUsers();
     } catch {
-      message.error("Failed to create user");
+      message.error("Failed to invite user");
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function handleEditUser(values: CreateUserPayload) {
+  async function handleEditUser(values: InviteUserPayload) {
     if (!editingUser) return;
     setSubmitting(true);
     try {
@@ -100,7 +106,7 @@ export default function UsersPage() {
               icon={<PlusOutlined />}
               onClick={() => setModalOpen(true)}
             >
-              New User
+              Invite User
             </Button>
           </>
         }
@@ -120,19 +126,34 @@ export default function UsersPage() {
       <UserTable
         data={filtered}
         loading={loading}
-        onEdit={(user) => {
+        onEdit={(editUser) => {
           form.setFieldsValue({
-            name: user.name,
-            email: user.email,
-            phone: user.phone,
-            team_id: user.team_id ?? undefined,
+            name: editUser.name,
+            email: editUser.email,
+            phone: editUser.phone,
+            role: editUser.role,
+            team_id: editUser.team_id ?? undefined,
           });
-          setEditingUser(user);
+          setEditingUser(editUser);
+        }}
+        onResendInvite={async (u) => {
+          const res = await fetch("/api/users/invite", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: u.name,
+              email: u.email,
+              role: u.role,
+              team_id: u.team_id ?? undefined,
+              resend: true,
+            }),
+          });
+          if (!res.ok) throw new Error("Failed to resend");
         }}
       />
 
       <Modal
-        title="Create User"
+        title="Invite User"
         open={modalOpen}
         onCancel={() => {
           setModalOpen(false);
@@ -141,7 +162,7 @@ export default function UsersPage() {
         onOk={() => form.submit()}
         confirmLoading={submitting}
         width={640}
-        okText="Create User"
+        okText="Invite User"
         destroyOnHidden
         okButtonProps={{ disabled: !formValid }}
       >
@@ -151,6 +172,7 @@ export default function UsersPage() {
           loading={submitting}
           hideSubmitButton
           onValidityChange={setFormValid}
+          currentUserRole={user?.role}
         />
       </Modal>
 
@@ -174,12 +196,14 @@ export default function UsersPage() {
           loading={submitting}
           hideSubmitButton
           onValidityChange={setFormValid}
+          currentUserRole={user?.role}
           initialValues={
             editingUser
               ? {
                   name: editingUser.name,
                   email: editingUser.email,
-                  phone: editingUser.phone,
+                  phone: editingUser.phone ?? undefined,
+                  role: editingUser.role,
                   team_id: editingUser.team_id ?? undefined,
                 }
               : undefined
