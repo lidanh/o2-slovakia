@@ -1,54 +1,55 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { useState } from "react";
 import { Form, Input, Button, Typography, Alert, Flex } from "antd";
-import { MailOutlined, LockOutlined } from "@ant-design/icons";
+import { LockOutlined } from "@ant-design/icons";
 import Image from "next/image";
-import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 const { Title, Text } = Typography;
 
-export default function LoginPage() {
-  return (
-    <Suspense>
-      <LoginForm />
-    </Suspense>
-  );
-}
-
-function LoginForm() {
+export default function AcceptInvitePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const successMessage = searchParams.get("message");
-  const supabase = createClient();
 
-  async function handleLogin(values: { email: string; password: string }) {
+  async function handleSetPassword(values: {
+    password: string;
+    confirm: string;
+  }) {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: values.email,
-      password: values.password,
-    });
-
-    if (error) {
-      setError(error.message);
+    if (values.password !== values.confirm) {
+      setError("Passwords do not match");
       setLoading(false);
       return;
     }
 
-    // Get role from the session to determine redirect
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    const role = authUser?.app_metadata?.role ?? "user";
+    // Set password and activate via server-side API
+    // (browser can't reach Supabase directly behind reverse proxy)
+    const res = await fetch("/api/users/me", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: values.password, status: "active" }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      setError(data?.error || "Failed to set password");
+      setLoading(false);
+      return;
+    }
+
+    const user = await res.json();
+    const role = user?.role ?? "user";
+
     const redirectMap: Record<string, string> = {
       admin: "/dashboard",
       team_manager: "/dashboard",
       user: "/my-dashboard",
     };
+
     router.push(redirectMap[role] || "/dashboard");
     router.refresh();
   }
@@ -86,22 +87,12 @@ function LoginForm() {
             color: "#1a1a2e",
           }}
         >
-          O2 Trainer
+          Set Your Password
         </Title>
         <Text style={{ color: "#9CA3AF", fontSize: 14 }}>
-          Sign in to your account
+          Welcome to O2 Trainer! Create a password to complete your setup.
         </Text>
       </Flex>
-
-      {successMessage && (
-        <Alert
-          message={successMessage}
-          type="success"
-          showIcon
-          closable
-          style={{ marginBottom: 20, borderRadius: 12 }}
-        />
-      )}
 
       {error && (
         <Alert
@@ -114,38 +105,36 @@ function LoginForm() {
         />
       )}
 
-      <Form layout="vertical" onFinish={handleLogin} autoComplete="off" size="large">
-        <Form.Item
-          name="email"
-          rules={[
-            { required: true, message: "Please enter your email" },
-            { type: "email", message: "Please enter a valid email" },
-          ]}
-        >
-          <Input
-            prefix={<MailOutlined style={{ color: "#9CA3AF" }} />}
-            placeholder="Email address"
-          />
-        </Form.Item>
-
+      <Form
+        layout="vertical"
+        onFinish={handleSetPassword}
+        autoComplete="off"
+        size="large"
+      >
         <Form.Item
           name="password"
-          rules={[{ required: true, message: "Please enter your password" }]}
+          rules={[
+            { required: true, message: "Please enter a password" },
+            { min: 8, message: "Password must be at least 8 characters" },
+          ]}
         >
           <Input.Password
             prefix={<LockOutlined style={{ color: "#9CA3AF" }} />}
-            placeholder="Password"
+            placeholder="New password"
           />
         </Form.Item>
 
-        <div style={{ textAlign: "right", marginTop: -8, marginBottom: 8 }}>
-          <Link
-            href="/forgot-password"
-            style={{ color: "#0112AA", fontSize: 13 }}
-          >
-            Forgot your password?
-          </Link>
-        </div>
+        <Form.Item
+          name="confirm"
+          rules={[
+            { required: true, message: "Please confirm your password" },
+          ]}
+        >
+          <Input.Password
+            prefix={<LockOutlined style={{ color: "#9CA3AF" }} />}
+            placeholder="Confirm password"
+          />
+        </Form.Item>
 
         <Form.Item style={{ marginBottom: 0, marginTop: 12 }}>
           <Button
@@ -164,7 +153,7 @@ function LoginForm() {
               boxShadow: "0 4px 16px rgba(1, 18, 170, 0.3)",
             }}
           >
-            Sign In
+            Complete Setup
           </Button>
         </Form.Item>
       </Form>
