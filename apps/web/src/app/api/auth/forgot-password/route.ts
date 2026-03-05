@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
 
     if (email) {
       const supabase = createServiceClient();
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:5050";
+      const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5050";
 
       await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${siteUrl}/auth/confirm`,

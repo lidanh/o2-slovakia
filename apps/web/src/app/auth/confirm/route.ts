@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createServiceClient } from "@/lib/supabase/service";
 
 function getSiteUrl() {
-  return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:5050";
+  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5050";
 }
 
 export async function GET(request: NextRequest) {
