@@ -75,8 +75,12 @@ export async function updateSession(request: NextRequest) {
       .eq("id", user.id)
       .single();
 
-    if (profile?.status === "invited" && !pathname.startsWith("/accept-invite")) {
-      return redirectTo("/accept-invite");
+    if (profile?.status === "invited") {
+      await service
+        .from("users")
+        .update({ status: "active", updated_at: new Date().toISOString() })
+        .eq("id", user.id);
+      profile.status = "active";
     }
 
     // Use role from DB (authoritative) with fallback to JWT metadata
