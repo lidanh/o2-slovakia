@@ -24,7 +24,7 @@ data "aws_route53_zone" "main" {
 # --- ACM Certificate ---
 
 resource "aws_acm_certificate" "ws_proxy" {
-  domain_name       = "ws.o2.${var.domain}"
+  domain_name       = "ws-o2.${var.domain}"
   validation_method = "DNS"
 
   lifecycle {
@@ -140,7 +140,7 @@ resource "aws_lb_listener" "https" {
 
 resource "aws_route53_record" "ws_proxy" {
   zone_id = data.aws_route53_zone.main.zone_id
-  name    = "ws.o2.${var.domain}"
+  name    = "ws-o2.${var.domain}"
   type    = "A"
 
   alias {

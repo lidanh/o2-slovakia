@@ -3,5 +3,5 @@ output "alb_dns_name" {
 }
 
 output "custom_domain" {
-  value = "ws.o2.${var.domain}"
+  value = "ws-o2.${var.domain}"
 }
