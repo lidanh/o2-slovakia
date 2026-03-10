@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [master]
 
 jobs:
   deploy:
@@ -20,6 +20,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm build
+        env:
+          NEXT_PUBLIC_WS_PROXY_URL: wss://ws.o2.wonderful-global.ai/ws
 
       - uses: amondnet/vercel-action@v25
         with:
