@@ -3,10 +3,6 @@ variable "project" {
   default = "o2-slovakia"
 }
 
-variable "domain" {
-  type = string
-}
-
 variable "ecr_repository_url" {
   type = string
 }

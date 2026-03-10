@@ -1,7 +1,3 @@
-data "aws_route53_zone" "main" {
-  name = var.domain
-}
-
 # --- IAM ---
 
 data "aws_iam_policy_document" "apprunner_assume" {
@@ -107,29 +103,3 @@ resource "aws_apprunner_service" "ws_proxy" {
   }
 }
 
-resource "aws_apprunner_custom_domain_association" "ws_proxy" {
-  domain_name          = "ws.o2.${var.domain}"
-  service_arn          = aws_apprunner_service.ws_proxy.arn
-  enable_www_subdomain = false
-}
-
-resource "aws_route53_record" "ws_proxy" {
-  zone_id = data.aws_route53_zone.main.zone_id
-  name    = "ws.o2.${var.domain}"
-  type    = "CNAME"
-  ttl     = 300
-  records = [aws_apprunner_custom_domain_association.ws_proxy.dns_target]
-}
-
-resource "aws_route53_record" "ws_proxy_validation" {
-  for_each = {
-    for r in aws_apprunner_custom_domain_association.ws_proxy.certificate_validation_records :
-    r.name => r
-  }
-
-  zone_id = data.aws_route53_zone.main.zone_id
-  name    = each.value.name
-  type    = each.value.type
-  ttl     = 300
-  records = [each.value.value]
-}
