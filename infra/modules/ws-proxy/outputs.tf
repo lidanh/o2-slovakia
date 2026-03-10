@@ -1,8 +1,7 @@
-output "service_url" {
-  value = aws_apprunner_service.ws_proxy.service_url
+output "alb_dns_name" {
+  value = aws_lb.ws_proxy.dns_name
 }
 
-output "service_arn" {
-  value = aws_apprunner_service.ws_proxy.arn
+output "custom_domain" {
+  value = "ws.o2.${var.domain}"
 }
-

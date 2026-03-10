@@ -19,6 +19,7 @@ dependency "ssm" {
 }
 
 inputs = {
+  domain             = local.env.locals.domain
   ecr_repository_url = dependency.ecr.outputs.repository_url
   ssm_parameter_arns = dependency.ssm.outputs.parameter_arns
 }

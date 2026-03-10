@@ -33,3 +33,11 @@ jobs:
           docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG -t $REGISTRY/$REPOSITORY:latest apps/ws-proxy
           docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
           docker push $REGISTRY/$REPOSITORY:latest
+
+      - name: Deploy to ECS
+        run: |
+          aws ecs update-service \
+            --cluster o2-slovakia-ws-proxy \
+            --service o2-slovakia-ws-proxy \
+            --force-new-deployment \
+            --region $AWS_REGION
