@@ -17,75 +17,77 @@ import { usePathname, useRouter } from "next/navigation";
 import type { MenuProps } from "antd";
 import { useAuth } from "@/contexts/AuthContext";
 import type { UserRole } from "@repo/shared";
+import {useTranslations} from 'next-intl';
 
 const { Sider } = Layout;
-
-const adminMenu: MenuProps["items"] = [
-  { key: "/dashboard", icon: <DashboardOutlined />, label: "Dashboard" },
-  { key: "/training", icon: <PhoneOutlined />, label: "Sessions" },
-  { key: "/scenarios", icon: <FileTextOutlined />, label: "Scenarios" },
-  { key: "/users", icon: <UserOutlined />, label: "Users" },
-  { key: "/teams", icon: <TeamOutlined />, label: "Teams" },
-  {
-    key: "analytics-group",
-    icon: <BarChartOutlined />,
-    label: "Analytics",
-    children: [
-      { key: "/analytics", icon: <BarChartOutlined />, label: "Overview" },
-      { key: "/analytics/leaderboard", icon: <TrophyOutlined />, label: "Leaderboard" },
-    ],
-  },
-  { key: "/settings", icon: <SettingOutlined />, label: "Settings" },
-];
-
-const managerMenu: MenuProps["items"] = [
-  {
-    key: "management",
-    type: "group",
-    label: "Management",
-    children: [
-      { key: "/dashboard", icon: <DashboardOutlined />, label: "Dashboard" },
-      { key: "/training", icon: <PhoneOutlined />, label: "Sessions" },
-      { key: "/users", icon: <UserOutlined />, label: "Team Members" },
-      {
-        key: "analytics-group",
-        icon: <BarChartOutlined />,
-        label: "Analytics",
-        children: [
-          { key: "/analytics", icon: <BarChartOutlined />, label: "Overview" },
-          { key: "/analytics/leaderboard", icon: <TrophyOutlined />, label: "Leaderboard" },
-        ],
-      },
-    ],
-  },
-  {
-    key: "personal",
-    type: "group",
-    label: "Personal",
-    children: [
-      { key: "/my-dashboard", icon: <DashboardOutlined />, label: "My Dashboard" },
-      { key: "/my-training", icon: <PhoneOutlined />, label: "My Training" },
-      { key: "/my-profile", icon: <IdcardOutlined />, label: "My Profile" },
-    ],
-  },
-];
-
-const userMenu: MenuProps["items"] = [
-  { key: "/my-dashboard", icon: <DashboardOutlined />, label: "My Dashboard" },
-  { key: "/my-training", icon: <PhoneOutlined />, label: "My Training" },
-  { key: "/my-profile", icon: <IdcardOutlined />, label: "My Profile" },
-];
-
-const menuByRole: Record<UserRole, MenuProps["items"]> = {
-  admin: adminMenu,
-  team_manager: managerMenu,
-  user: userMenu,
-};
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
+  const t = useTranslations('Common');
+
+  const adminMenu: MenuProps["items"] = [
+    { key: "/dashboard", icon: <DashboardOutlined />, label: t('nav.dashboard') },
+    { key: "/training", icon: <PhoneOutlined />, label: t('nav.sessions') },
+    { key: "/scenarios", icon: <FileTextOutlined />, label: t('nav.scenarios') },
+    { key: "/users", icon: <UserOutlined />, label: t('nav.users') },
+    { key: "/teams", icon: <TeamOutlined />, label: t('nav.teams') },
+    {
+      key: "analytics-group",
+      icon: <BarChartOutlined />,
+      label: t('nav.analytics'),
+      children: [
+        { key: "/analytics", icon: <BarChartOutlined />, label: t('nav.overview') },
+        { key: "/analytics/leaderboard", icon: <TrophyOutlined />, label: t('nav.leaderboard') },
+      ],
+    },
+    { key: "/settings", icon: <SettingOutlined />, label: t('nav.settings') },
+  ];
+
+  const managerMenu: MenuProps["items"] = [
+    {
+      key: "management",
+      type: "group",
+      label: t('navGroups.management'),
+      children: [
+        { key: "/dashboard", icon: <DashboardOutlined />, label: t('nav.dashboard') },
+        { key: "/training", icon: <PhoneOutlined />, label: t('nav.sessions') },
+        { key: "/users", icon: <UserOutlined />, label: t('nav.teamMembers') },
+        {
+          key: "analytics-group",
+          icon: <BarChartOutlined />,
+          label: t('nav.analytics'),
+          children: [
+            { key: "/analytics", icon: <BarChartOutlined />, label: t('nav.overview') },
+            { key: "/analytics/leaderboard", icon: <TrophyOutlined />, label: t('nav.leaderboard') },
+          ],
+        },
+      ],
+    },
+    {
+      key: "personal",
+      type: "group",
+      label: t('navGroups.personal'),
+      children: [
+        { key: "/my-dashboard", icon: <DashboardOutlined />, label: t('nav.myDashboard') },
+        { key: "/my-training", icon: <PhoneOutlined />, label: t('nav.myTraining') },
+        { key: "/my-profile", icon: <IdcardOutlined />, label: t('nav.myProfile') },
+      ],
+    },
+  ];
+
+  const userMenu: MenuProps["items"] = [
+    { key: "/my-dashboard", icon: <DashboardOutlined />, label: t('nav.myDashboard') },
+    { key: "/my-training", icon: <PhoneOutlined />, label: t('nav.myTraining') },
+    { key: "/my-profile", icon: <IdcardOutlined />, label: t('nav.myProfile') },
+  ];
+
+  const menuByRole: Record<UserRole, MenuProps["items"]> = {
+    admin: adminMenu,
+    team_manager: managerMenu,
+    user: userMenu,
+  };
 
   const menuItems = menuByRole[user?.role ?? "user"];
 
@@ -169,7 +171,7 @@ export default function Sidebar() {
               lineHeight: 1.2,
             }}
           >
-            O2 Trainer
+            {t('appName')}
           </span>
           <span
             style={{
@@ -180,7 +182,7 @@ export default function Sidebar() {
               textTransform: "uppercase" as const,
             }}
           >
-            O2 Slovakia
+            {t('appOrg')}
           </span>
         </div>
       </div>

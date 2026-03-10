@@ -3,6 +3,7 @@
 import { Modal, Transfer, App, Spin } from "antd";
 import { useState, useEffect } from "react";
 import type { User } from "@repo/shared";
+import {useTranslations} from 'next-intl';
 
 interface AddUsersDialogProps {
   open: boolean;
@@ -22,6 +23,7 @@ export default function AddUsersDialog({
   onSuccess,
 }: AddUsersDialogProps) {
   const { message } = App.useApp();
+  const t = useTranslations('AddUsers');
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
@@ -37,7 +39,7 @@ export default function AddUsersDialog({
           return res.json();
         })
         .then((data) => setUsers(Array.isArray(data) ? data : []))
-        .catch(() => message.error("Failed to load users"))
+        .catch(() => message.error(t('failedToLoadUsers')))
         .finally(() => setLoading(false));
     }
   }, [open]);
@@ -58,10 +60,10 @@ export default function AddUsersDialog({
         }),
       });
       if (!res.ok) throw new Error("Failed to create assignments");
-      message.success(`${selectedKeys.length} users assigned`);
+      message.success(t('usersAssigned', { count: selectedKeys.length }));
       onSuccess();
     } catch {
-      message.error("Failed to assign users");
+      message.error(t('failedToAssign'));
     } finally {
       setSubmitting(false);
     }
@@ -69,7 +71,7 @@ export default function AddUsersDialog({
 
   return (
     <Modal
-      title="Add Users"
+      title={t('title')}
       open={open}
       onCancel={onClose}
       onOk={handleOk}
@@ -92,7 +94,7 @@ export default function AddUsersDialog({
           onChange={(keys) => setSelectedKeys(keys as string[])}
           render={(item) => `${item.title} (${item.description})`}
           listStyle={{ width: 250, height: 300 }}
-          titles={["Available", "Selected"]}
+          titles={[t('available'), t('selected')]}
           showSearch
           filterOption={(input, item) =>
             (item.title?.toLowerCase() ?? "").includes(input.toLowerCase()) ||

@@ -33,6 +33,7 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import ReactMarkdown from "react-markdown";
+import {useTranslations} from 'next-intl';
 import PageHeader from "@/components/common/PageHeader";
 import AddUsersDialog from "@/components/common/AddUsersDialog";
 import ScenarioForm from "@/components/scenarios/ScenarioForm";
@@ -52,6 +53,9 @@ import {
 const { Text, Paragraph } = Typography;
 
 export default function ScenarioDetailPage() {
+  const t = useTranslations('Scenarios');
+  const tCommon = useTranslations('Common');
+  const tTraining = useTranslations('Training');
   const params = useParams();
   const id = params.id as string;
 
@@ -100,7 +104,7 @@ export default function ScenarioDetailPage() {
         setAgents(agentsData);
       }
     } catch {
-      message.error("Failed to load scenario");
+      message.error(tCommon('messages.failedToLoadScenario'));
     } finally {
       setLoading(false);
     }
@@ -119,12 +123,12 @@ export default function ScenarioDetailPage() {
         body: JSON.stringify(values),
       });
       if (!res.ok) throw new Error("Failed to update scenario");
-      message.success("Scenario updated");
+      message.success(tCommon('messages.scenarioUpdated'));
       setEditModalOpen(false);
       editForm.resetFields();
       fetchData();
     } catch {
-      message.error("Failed to update scenario");
+      message.error(tCommon('messages.failedToUpdateScenario'));
     } finally {
       setEditSubmitting(false);
     }
@@ -140,10 +144,10 @@ export default function ScenarioDetailPage() {
         body: JSON.stringify({ assignmentIds: [assignmentId] }),
       });
       if (!res.ok) throw new Error("Failed to remove assignment");
-      message.success("Assignment removed");
+      message.success(tCommon('messages.assignmentRemoved'));
       fetchData();
     } catch {
-      message.error("Failed to remove assignment");
+      message.error(tCommon('messages.failedToRemoveAssignment'));
     }
   }
 
@@ -155,27 +159,27 @@ export default function ScenarioDetailPage() {
         body: JSON.stringify({ assignmentId }),
       });
       if (!res.ok) throw new Error("Failed to trigger call");
-      message.success("Call initiated");
+      message.success(tCommon('messages.callInitiated'));
     } catch {
-      message.error("Failed to trigger call");
+      message.error(tCommon('messages.failedToTriggerCall'));
     }
   }
 
   function confirmTriggerCall(assignment: AssignmentWithDetails) {
     modal.confirm({
-      title: "Confirm Call",
+      title: tTraining('confirmCall.title'),
       icon: <PhoneOutlined style={{ color: '#0112AA' }} />,
       content: (
         <>
-          <p>You are about to call <strong>{assignment.user.name}</strong> at <strong>{assignment.user.phone}</strong>. Do you want to proceed?</p>
+          <p>{tTraining('confirmCall.message', { userName: assignment.user.name, phone: assignment.user.phone ?? '' })}</p>
           <div style={{ marginTop: 8, padding: '8px 12px', background: '#F8F9FA', borderRadius: 8, fontSize: 13, color: '#6b7280' }}>
             {scenario?.name} — {assignment.difficulty_level.name}
           </div>
         </>
       ),
-      okText: "Call Now",
+      okText: tTraining('confirmCall.callNow'),
       okButtonProps: { icon: <PhoneOutlined /> },
-      cancelText: "Cancel",
+      cancelText: tCommon('buttons.cancel'),
       onOk: () => handleTriggerCall(assignment.id),
     });
   }
@@ -191,9 +195,9 @@ export default function ScenarioDetailPage() {
       const data = await res.json();
       const fullUrl = `${window.location.origin}${data.callUrl}`;
       await navigator.clipboard.writeText(fullUrl);
-      message.success("Link copied to clipboard!");
+      message.success(tCommon('messages.linkCopied'));
     } catch {
-      message.error("Failed to generate link");
+      message.error(tCommon('messages.failedToGenerateLink'));
     }
   }
 
@@ -207,9 +211,9 @@ export default function ScenarioDetailPage() {
       });
       if (!res.ok) throw new Error("Failed to trigger bulk calls");
       const data = await res.json();
-      message.success(`${data.initiated ?? 0} calls initiated`);
+      message.success(tCommon('messages.bulkCallsInitiated', { count: data.initiated ?? 0 }));
     } catch {
-      message.error("Failed to trigger bulk calls");
+      message.error(tCommon('messages.failedToTriggerBulkCalls'));
     } finally {
       setBulkLoading(null);
     }
@@ -217,14 +221,14 @@ export default function ScenarioDetailPage() {
 
   function confirmBulkCall(difficultyLevelId: string, count: number) {
     modal.confirm({
-      title: "Confirm Bulk Call",
+      title: tTraining('confirmBulkCall.title'),
       icon: <PhoneOutlined style={{ color: '#0112AA' }} />,
       content: (
-        <p>You are about to call <strong>{count} trainees</strong>. Each trainee will receive a separate call. Do you want to proceed?</p>
+        <p>{tTraining('confirmBulkCall.message', { count })}</p>
       ),
-      okText: "Call All",
+      okText: tTraining('confirmBulkCall.callAll'),
       okButtonProps: { icon: <PhoneOutlined /> },
-      cancelText: "Cancel",
+      cancelText: tCommon('buttons.cancel'),
       onOk: () => handleBulkCall(difficultyLevelId),
     });
   }
@@ -233,18 +237,18 @@ export default function ScenarioDetailPage() {
 
   const columns: ColumnsType<AssignmentWithDetails> = [
     {
-      title: "User",
+      title: tCommon('fields.user'),
       key: "user",
       render: (_, r) => r.user.name,
       sorter: (a, b) => a.user.name.localeCompare(b.user.name),
     },
     {
-      title: "Email",
+      title: tCommon('fields.email'),
       key: "email",
       render: (_, r) => r.user.email,
     },
     {
-      title: "Status",
+      title: tCommon('fields.status'),
       dataIndex: "status",
       key: "status",
       render: (status: AssignmentWithDetails["status"]) => (
@@ -254,7 +258,7 @@ export default function ScenarioDetailPage() {
       ),
     },
     {
-      title: "Actions",
+      title: tCommon('fields.actions'),
       key: "actions",
       render: (_, r) => (
         <Space>
@@ -263,13 +267,13 @@ export default function ScenarioDetailPage() {
               items: [
                 {
                   key: "phone",
-                  label: "Phone Call",
+                  label: tCommon('callTypes.phoneCall'),
                   icon: <PhoneOutlined />,
                   onClick: () => confirmTriggerCall(r),
                 },
                 {
                   key: "browser",
-                  label: "Share a Link",
+                  label: tCommon('callTypes.shareLink'),
                   icon: <LinkOutlined />,
                   onClick: () => handleShareLink(r.id),
                 },
@@ -283,15 +287,15 @@ export default function ScenarioDetailPage() {
               icon={<PhoneOutlined />}
               disabled={r.status === "completed"}
             >
-              Train <DownOutlined style={{ fontSize: 10 }} />
+              {tTraining('train')} <DownOutlined style={{ fontSize: 10 }} />
             </Button>
           </Dropdown>
           <Popconfirm
-            title="Remove assignment?"
+            title={t('confirmRemoveAssignment')}
             onConfirm={() => handleRemoveAssignment(r.id)}
           >
             <Button type="link" danger icon={<DeleteOutlined />}>
-              Remove
+              {t('removeAssignment')}
             </Button>
           </Popconfirm>
         </Space>
@@ -308,7 +312,7 @@ export default function ScenarioDetailPage() {
   }
 
   if (!scenario) {
-    return <div>Scenario not found</div>;
+    return <div>{t('scenarioNotFound')}</div>;
   }
 
   const sorted = [...scenario.difficulty_levels].sort(
@@ -319,14 +323,14 @@ export default function ScenarioDetailPage() {
     <>
       <PageHeader
         title={scenario.name}
-        subtitle={`${SCENARIO_TYPE_LABELS[scenario.type]} scenario`}
+        subtitle={t('scenarioTypeLabel', { type: SCENARIO_TYPE_LABELS[scenario.type] })}
         backHref="/scenarios"
         extra={
           <Button
             icon={<EditOutlined />}
             onClick={() => setEditModalOpen(true)}
           >
-            Edit Scenario
+            {t('editScenario')}
           </Button>
         }
       />
@@ -343,7 +347,7 @@ export default function ScenarioDetailPage() {
                 {SCENARIO_TYPE_LABELS[scenario.type]}
               </Tag>
               <Tag color={scenario.is_active ? "success" : "default"}>
-                {scenario.is_active ? "Active" : "Inactive"}
+                {scenario.is_active ? tCommon('status.active') : tCommon('status.inactive')}
               </Tag>
               {scenario.agent_id ? (
                 <Tag>
@@ -351,13 +355,13 @@ export default function ScenarioDetailPage() {
                   {agents.find((a) => a.id === scenario.agent_id)
                     ?.display_name ||
                     agents.find((a) => a.id === scenario.agent_id)?.name ||
-                    "Custom Agent"}
+                    t('detail.customAgent')}
                 </Tag>
               ) : (
-                <Tag>Default Agent</Tag>
+                <Tag>{t('detail.defaultAgent')}</Tag>
               )}
               <Text style={{ color: "#9CA3AF", fontSize: 12 }}>
-                Created{" "}
+                {tCommon('fields.created')}{" "}
                 {new Date(scenario.created_at).toLocaleDateString("sk-SK")}
               </Text>
             </div>
@@ -374,7 +378,7 @@ export default function ScenarioDetailPage() {
                     marginBottom: 6,
                   }}
                 >
-                  Description
+                  {t('detail.description')}
                 </Text>
                 <Paragraph
                   style={{
@@ -400,7 +404,7 @@ export default function ScenarioDetailPage() {
                   marginBottom: 6,
                 }}
               >
-                Base Prompt
+                {t('detail.basePrompt')}
               </Text>
               <div
                 className="prompt-markdown"
@@ -460,7 +464,7 @@ export default function ScenarioDetailPage() {
                     display: "block",
                   }}
                 >
-                  Difficulty Levels
+                  {t('detail.difficultyLevels')}
                 </Text>
                 <Text
                   strong
@@ -552,7 +556,7 @@ export default function ScenarioDetailPage() {
                         marginBottom: 6,
                       }}
                     >
-                      Difficulty Prompt
+                      {t('detail.difficultyPrompt')}
                     </div>
                     <Paragraph
                       style={{
@@ -565,7 +569,7 @@ export default function ScenarioDetailPage() {
                       ellipsis={{
                         rows: 4,
                         expandable: true,
-                        symbol: "Show more",
+                        symbol: t('detail.showMore'),
                       }}
                     >
                       {level.prompt}
@@ -587,7 +591,7 @@ export default function ScenarioDetailPage() {
                         }}
                       >
                         <span style={{ fontSize: 12, color: "#9CA3AF" }}>
-                          Resistance
+                          {t('detail.resistance')}
                         </span>
                         <span
                           style={{
@@ -611,7 +615,7 @@ export default function ScenarioDetailPage() {
                         }}
                       >
                         <span style={{ fontSize: 12, color: "#9CA3AF" }}>
-                          Emotional Intensity
+                          {t('detail.emotionalIntensity')}
                         </span>
                         <span
                           style={{
@@ -635,7 +639,7 @@ export default function ScenarioDetailPage() {
                         }}
                       >
                         <span style={{ fontSize: 12, color: "#9CA3AF" }}>
-                          Cooperation
+                          {t('detail.cooperation')}
                         </span>
                         <span
                           style={{
@@ -662,7 +666,7 @@ export default function ScenarioDetailPage() {
                       }}
                     >
                       <Text strong style={{ fontSize: 15 }}>
-                        Assigned Users ({levelAssignments.length})
+                        {t('detail.assignedUsers', { count: levelAssignments.length })}
                       </Text>
                       <Space>
                         <Button
@@ -671,7 +675,7 @@ export default function ScenarioDetailPage() {
                           loading={bulkLoading === level.id}
                           disabled={levelAssignments.length === 0}
                         >
-                          Call All
+                          {tCommon('buttons.callAll')}
                         </Button>
                         <Button
                           type="primary"
@@ -680,7 +684,7 @@ export default function ScenarioDetailPage() {
                             setAddDialogOpen(true);
                           }}
                         >
-                          Add Users
+                          {tCommon('buttons.addUsers')}
                         </Button>
                       </Space>
                     </div>
@@ -701,7 +705,7 @@ export default function ScenarioDetailPage() {
                     ) : (
                       <Empty
                         image={Empty.PRESENTED_IMAGE_SIMPLE}
-                        description="No users assigned to this difficulty level yet"
+                        description={t('detail.noUsersAssigned')}
                       >
                         <Button
                           type="dashed"
@@ -710,7 +714,7 @@ export default function ScenarioDetailPage() {
                             setAddDialogOpen(true);
                           }}
                         >
-                          Add Users
+                          {tCommon('buttons.addUsers')}
                         </Button>
                       </Empty>
                     )}
@@ -738,7 +742,7 @@ export default function ScenarioDetailPage() {
       />
 
       <Modal
-        title="Edit Scenario"
+        title={t('editScenario')}
         open={editModalOpen}
         onCancel={() => {
           setEditModalOpen(false);
@@ -747,7 +751,7 @@ export default function ScenarioDetailPage() {
         onOk={() => editForm.submit()}
         confirmLoading={editSubmitting}
         width={720}
-        okText="Save Changes"
+        okText={tCommon('buttons.saveChanges')}
         destroyOnHidden
         okButtonProps={{ disabled: !editFormValid }}
       >

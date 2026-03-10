@@ -19,6 +19,7 @@ export interface AuthUser {
   teamId: string | null;
   avatarUrl: string | null;
   phone: string | null;
+  language: string;
 }
 
 interface AuthContextValue {
@@ -60,6 +61,7 @@ export function AuthProvider({
         teamId: data.team_id,
         avatarUrl: data.avatar_url,
         phone: data.phone,
+        language: data.language ?? 'en',
       });
     } catch {
       setUser(null);

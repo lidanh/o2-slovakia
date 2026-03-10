@@ -2,6 +2,7 @@
 
 import { Table, Tag, Switch } from "antd";
 import { useRouter } from "next/navigation";
+import {useTranslations} from 'next-intl';
 import type { ColumnsType } from "antd/es/table";
 import type { Scenario, ScenarioType } from "@repo/shared";
 import { SCENARIO_TYPE_LABELS } from "@repo/shared";
@@ -13,11 +14,12 @@ interface ScenarioTableProps {
 }
 
 export default function ScenarioTable({ data, loading, onToggleActive }: ScenarioTableProps) {
+  const t = useTranslations('Scenarios');
   const router = useRouter();
 
   const columns: ColumnsType<Scenario> = [
     {
-      title: "Name",
+      title: t('table.name'),
       dataIndex: "name",
       key: "name",
       sorter: (a, b) => a.name.localeCompare(b.name),
@@ -26,7 +28,7 @@ export default function ScenarioTable({ data, loading, onToggleActive }: Scenari
       ),
     },
     {
-      title: "Type",
+      title: t('table.type'),
       dataIndex: "type",
       key: "type",
       render: (type: ScenarioType) => (
@@ -36,7 +38,7 @@ export default function ScenarioTable({ data, loading, onToggleActive }: Scenari
       ),
     },
     {
-      title: "Active",
+      title: t('table.active'),
       dataIndex: "is_active",
       key: "is_active",
       render: (active: boolean, record) => (
@@ -48,7 +50,7 @@ export default function ScenarioTable({ data, loading, onToggleActive }: Scenari
       ),
     },
     {
-      title: "Created",
+      title: t('table.created'),
       dataIndex: "created_at",
       key: "created_at",
       render: (date: string) => new Date(date).toLocaleDateString("sk-SK"),

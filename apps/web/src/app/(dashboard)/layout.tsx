@@ -4,6 +4,8 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { AuthProvider, type AuthUser } from "@/contexts/AuthContext";
 import DashboardShell from "@/components/layout/DashboardShell";
 import type { UserRole } from "@repo/shared";
+import {NextIntlClientProvider} from 'next-intl';
+import {getMessages} from 'next-intl/server';
 
 export default async function DashboardLayout({
   children,
@@ -24,7 +26,7 @@ export default async function DashboardLayout({
   const service = createServiceClient();
   const { data: profile } = await service
     .from("users")
-    .select("name, role, team_id, avatar_url, phone")
+    .select("name, role, team_id, avatar_url, phone, language")
     .eq("id", user.id)
     .single();
 
@@ -37,12 +39,17 @@ export default async function DashboardLayout({
       teamId: profile.team_id,
       avatarUrl: profile.avatar_url,
       phone: profile.phone,
+      language: profile.language ?? 'en',
     };
   }
 
+  const messages = await getMessages();
+
   return (
-    <AuthProvider initialUser={initialUser}>
-      <DashboardShell>{children}</DashboardShell>
-    </AuthProvider>
+    <NextIntlClientProvider messages={messages}>
+      <AuthProvider initialUser={initialUser}>
+        <DashboardShell>{children}</DashboardShell>
+      </AuthProvider>
+    </NextIntlClientProvider>
   );
 }

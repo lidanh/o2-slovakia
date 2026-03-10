@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, Table, Tag, Tabs, Typography, App, Spin, Button, Row, Col, Rate } from "antd";
 import { BookOutlined, PhoneOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
+import {useTranslations} from 'next-intl';
 import PageHeader from "@/components/common/PageHeader";
 import ScoreDisplay from "@/components/common/ScoreDisplay";
 import CallTriggerButton from "@/components/training/CallTriggerButton";
@@ -22,6 +23,8 @@ import {
 const { Text } = Typography;
 
 export default function MyTrainingPage() {
+  const t = useTranslations('MyTraining');
+  const tCommon = useTranslations('Common');
   const router = useRouter();
   const { message } = App.useApp();
   const { user } = useAuth();
@@ -46,7 +49,7 @@ export default function MyTrainingPage() {
           setAssignments(Array.isArray(json) ? json : json.data ?? []);
         }
       } catch {
-        message.error("Failed to load training data");
+        message.error(tCommon('messages.failedToLoadTraining'));
       } finally {
         setLoading(false);
       }
@@ -70,10 +73,10 @@ export default function MyTrainingPage() {
             <Col xs={24} sm={12} lg={8} key={a.id}>
               <Card variant="borderless" styles={{ body: { padding: 20 } }}>
                 <Text strong style={{ fontSize: 15, display: "block", marginBottom: 4 }}>
-                  {a.scenario?.name ?? "Unknown Scenario"}
+                  {a.scenario?.name ?? t('unknownScenario')}
                 </Text>
                 <Text style={{ color: "#6b7280", fontSize: 13, display: "block", marginBottom: 12 }}>
-                  {a.difficulty_level?.name ?? "Default"}
+                  {a.difficulty_level?.name ?? t('default')}
                 </Text>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <Tag color={ASSIGNMENT_STATUS_COLORS[a.status]}>
@@ -93,7 +96,7 @@ export default function MyTrainingPage() {
         <div style={{ textAlign: "center", padding: "48px 0" }}>
           <BookOutlined style={{ fontSize: 32, color: "#d9d9d9", marginBottom: 8 }} />
           <br />
-          <Text style={{ color: "#9CA3AF" }}>No pending assignments</Text>
+          <Text style={{ color: "#9CA3AF" }}>{t('noPendingAssignments')}</Text>
         </div>
       )}
     </>
@@ -106,14 +109,14 @@ export default function MyTrainingPage() {
       loading={loading}
       pagination={{ pageSize: 10 }}
       size="small"
-      locale={{ emptyText: "No sessions yet" }}
+      locale={{ emptyText: t('noSessionsYet') }}
       onRow={(record) => ({
         style: { cursor: "pointer" },
         onClick: () => router.push(`/training/${record.id}`),
       })}
       columns={[
         {
-          title: "Date",
+          title: t('table.date'),
           dataIndex: "created_at",
           key: "date",
           width: 120,
@@ -125,17 +128,17 @@ export default function MyTrainingPage() {
             }),
         },
         {
-          title: "Scenario",
+          title: t('table.scenario'),
           key: "scenario",
           render: (_, r) => r.scenario?.name ?? "—",
         },
         {
-          title: "Difficulty",
+          title: t('table.difficulty'),
           key: "difficulty",
           render: (_, r) => r.difficulty_level?.name ?? "—",
         },
         {
-          title: "Score",
+          title: t('table.score'),
           dataIndex: "score",
           key: "score",
           width: 80,
@@ -144,7 +147,7 @@ export default function MyTrainingPage() {
           ),
         },
         {
-          title: "Rating",
+          title: t('table.rating'),
           dataIndex: "star_rating",
           key: "star_rating",
           width: 140,
@@ -156,7 +159,7 @@ export default function MyTrainingPage() {
             ),
         },
         {
-          title: "Status",
+          title: t('table.status'),
           dataIndex: "status",
           key: "status",
           width: 110,
@@ -179,7 +182,7 @@ export default function MyTrainingPage() {
                 router.push(`/training/${r.id}`);
               }}
             >
-              Details
+              {t('details')}
             </Button>
           ),
         },
@@ -189,7 +192,7 @@ export default function MyTrainingPage() {
 
   return (
     <>
-      <PageHeader title="My Training" subtitle="Your assignments and training history" />
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
       <Card variant="borderless" styles={{ body: { padding: "8px 24px 24px" } }}>
         <Tabs
@@ -199,7 +202,7 @@ export default function MyTrainingPage() {
               key: "assigned",
               label: (
                 <span>
-                  <BookOutlined /> Assigned{" "}
+                  <BookOutlined /> {t('assignedTab')}{" "}
                   {pendingAssignments.length > 0 && (
                     <Tag color="blue" style={{ marginLeft: 4, fontSize: 11 }}>
                       {pendingAssignments.length}
@@ -213,7 +216,7 @@ export default function MyTrainingPage() {
               key: "history",
               label: (
                 <span>
-                  <PhoneOutlined /> History
+                  <PhoneOutlined /> {t('historyTab')}
                 </span>
               ),
               children: historyTab,

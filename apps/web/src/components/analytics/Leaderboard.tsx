@@ -6,6 +6,7 @@ import type { ColumnsType } from "antd/es/table";
 import type { LeaderboardEntry } from "@repo/shared";
 import ScoreDisplay from "@/components/common/ScoreDisplay";
 import StarRating from "@/components/common/StarRating";
+import {useTranslations} from 'next-intl';
 
 const { Text } = Typography;
 
@@ -49,24 +50,25 @@ function RankBadge({ rank }: { rank: number }) {
 
 export default function Leaderboard({ data, loading }: LeaderboardProps) {
   const router = useRouter();
+  const t = useTranslations('Analytics');
 
   const columns: ColumnsType<LeaderboardEntry & { rank: number }> = [
     {
-      title: "Rank",
+      title: t('leaderboard.table.rank'),
       dataIndex: "rank",
       key: "rank",
       width: 70,
       render: (rank: number) => <RankBadge rank={rank} />,
     },
     {
-      title: "User",
+      title: t('leaderboard.table.user'),
       dataIndex: "user_name",
       key: "user_name",
       render: (name: string) => <Text strong style={{ fontSize: 13 }}>{name}</Text>,
       sorter: (a, b) => a.user_name.localeCompare(b.user_name),
     },
     {
-      title: "Team",
+      title: t('leaderboard.table.team'),
       dataIndex: "team_name",
       key: "team_name",
       render: (name: string | null) => (
@@ -74,7 +76,7 @@ export default function Leaderboard({ data, loading }: LeaderboardProps) {
       ),
     },
     {
-      title: "Avg Score",
+      title: t('leaderboard.table.avgScore'),
       dataIndex: "avg_score",
       key: "avg_score",
       render: (score: number) => <ScoreDisplay score={score} size="small" />,
@@ -82,13 +84,13 @@ export default function Leaderboard({ data, loading }: LeaderboardProps) {
       defaultSortOrder: "descend",
     },
     {
-      title: "Total Sessions",
+      title: t('leaderboard.table.totalSessions'),
       dataIndex: "total_sessions",
       key: "total_sessions",
       sorter: (a, b) => a.total_sessions - b.total_sessions,
     },
     {
-      title: "Avg Rating",
+      title: t('leaderboard.table.avgRating'),
       dataIndex: "avg_star_rating",
       key: "avg_star_rating",
       render: (rating: number) => <StarRating rating={rating} />,

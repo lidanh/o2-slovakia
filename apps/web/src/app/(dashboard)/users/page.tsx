@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Input, Modal, Form, Button, App } from "antd";
 import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
+import { useTranslations } from "next-intl";
 import PageHeader from "@/components/common/PageHeader";
 import ExportButton from "@/components/common/ExportButton";
 import UserTable from "@/components/users/UserTable";
@@ -11,6 +12,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import type { UserWithTeam, InviteUserPayload } from "@repo/shared";
 
 export default function UsersPage() {
+  const t = useTranslations('Users');
+  const tCommon = useTranslations('Common');
   const [users, setUsers] = useState<UserWithTeam[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -38,7 +41,7 @@ export default function UsersPage() {
       const data = await res.json();
       setUsers(data);
     } catch {
-      message.error("Failed to load users");
+      message.error(tCommon('messages.failedToLoadUsers'));
     } finally {
       setLoading(false);
     }
@@ -53,12 +56,12 @@ export default function UsersPage() {
         body: JSON.stringify(values),
       });
       if (!res.ok) throw new Error("Failed to invite user");
-      message.success("User invited");
+      message.success(tCommon('messages.userInvited'));
       setModalOpen(false);
       form.resetFields();
       fetchUsers();
     } catch {
-      message.error("Failed to invite user");
+      message.error(tCommon('messages.failedToInviteUser'));
     } finally {
       setSubmitting(false);
     }
@@ -74,12 +77,12 @@ export default function UsersPage() {
         body: JSON.stringify(values),
       });
       if (!res.ok) throw new Error("Failed to update user");
-      message.success("User updated");
+      message.success(tCommon('messages.userUpdated'));
       setEditingUser(null);
       form.resetFields();
       fetchUsers();
     } catch {
-      message.error("Failed to update user");
+      message.error(tCommon('messages.failedToUpdateUser'));
     } finally {
       setSubmitting(false);
     }
@@ -96,8 +99,8 @@ export default function UsersPage() {
   return (
     <>
       <PageHeader
-        title="Users"
-        subtitle="Manage training participants"
+        title={t('title')}
+        subtitle={t('subtitle')}
         extra={
           <>
             <ExportButton url="/api/users/export" filename="users.xlsx" />
@@ -106,7 +109,7 @@ export default function UsersPage() {
               icon={<PlusOutlined />}
               onClick={() => setModalOpen(true)}
             >
-              Invite User
+              {tCommon('buttons.inviteUser')}
             </Button>
           </>
         }
@@ -114,7 +117,7 @@ export default function UsersPage() {
 
       <div style={{ marginBottom: 16 }}>
         <Input
-          placeholder="Search by name or email..."
+          placeholder={t('searchPlaceholder')}
           prefix={<SearchOutlined />}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -153,7 +156,7 @@ export default function UsersPage() {
       />
 
       <Modal
-        title="Invite User"
+        title={tCommon('buttons.inviteUser')}
         open={modalOpen}
         onCancel={() => {
           setModalOpen(false);
@@ -162,7 +165,7 @@ export default function UsersPage() {
         onOk={() => form.submit()}
         confirmLoading={submitting}
         width={640}
-        okText="Invite User"
+        okText={tCommon('buttons.inviteUser')}
         destroyOnHidden
         okButtonProps={{ disabled: !formValid }}
       >
@@ -177,7 +180,7 @@ export default function UsersPage() {
       </Modal>
 
       <Modal
-        title="Edit User"
+        title={t('editUser')}
         open={!!editingUser}
         onCancel={() => {
           setEditingUser(null);
@@ -186,7 +189,7 @@ export default function UsersPage() {
         onOk={() => form.submit()}
         confirmLoading={submitting}
         width={640}
-        okText="Save Changes"
+        okText={tCommon('buttons.saveChanges')}
         destroyOnHidden
         okButtonProps={{ disabled: !formValid }}
       >

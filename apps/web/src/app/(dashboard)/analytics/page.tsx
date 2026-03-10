@@ -17,6 +17,7 @@ import PageHeader from "@/components/common/PageHeader";
 import KPICards from "@/components/analytics/KPICards";
 import ScoreDisplay from "@/components/common/ScoreDisplay";
 import type { AnalyticsKPIs, LeaderboardEntry } from "@repo/shared";
+import {useTranslations} from 'next-intl';
 
 const { Text } = Typography;
 
@@ -38,6 +39,8 @@ export default function AnalyticsPage() {
   const [topPerformers, setTopPerformers] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const { message } = App.useApp();
+  const t = useTranslations('Analytics');
+  const tCommon = useTranslations('Common');
 
   useEffect(() => {
     async function fetchData() {
@@ -54,7 +57,7 @@ export default function AnalyticsPage() {
         if (scenarioRes.ok) setScenarioStats(await scenarioRes.json());
         if (leaderboardRes.ok) setTopPerformers(await leaderboardRes.json());
       } catch {
-        message.error("Failed to load analytics");
+        message.error(tCommon('messages.failedToLoadAnalytics'));
       } finally {
         setLoading(false);
       }
@@ -64,7 +67,7 @@ export default function AnalyticsPage() {
 
   return (
     <>
-      <PageHeader title="Analytics" subtitle="Training performance overview" />
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
       <div style={{ marginBottom: 24 }}>
         <KPICards data={kpis} loading={loading} />
@@ -73,7 +76,7 @@ export default function AnalyticsPage() {
       <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
         <Col xs={24} lg={14}>
           <Card
-            title="Score Trend"
+            title={t('scoreTrend')}
             loading={loading}
             variant="borderless"
             styles={{ body: { padding: "16px 24px 24px" } }}
@@ -114,7 +117,7 @@ export default function AnalyticsPage() {
                     stroke="#0112AA"
                     strokeWidth={2.5}
                     fill="url(#analyticsScoreGradient)"
-                    name="Avg Score"
+                    name={t('chartLabelAvgScore')}
                     dot={{ r: 4, fill: "#0112AA", strokeWidth: 0 }}
                     activeDot={{ r: 6, fill: "#0112AA", stroke: "#fff", strokeWidth: 2 }}
                   />
@@ -123,7 +126,7 @@ export default function AnalyticsPage() {
             ) : (
               <div className="empty-state" style={{ height: 320 }}>
                 <Text style={{ color: "#9CA3AF" }}>
-                  Chart data will appear once training sessions are recorded
+                  {t('chartEmptyState')}
                 </Text>
               </div>
             )}
@@ -131,7 +134,7 @@ export default function AnalyticsPage() {
         </Col>
         <Col xs={24} lg={10}>
           <Card
-            title="Sessions by Scenario"
+            title={t('sessionsByScenario')}
             loading={loading}
             variant="borderless"
             styles={{ body: { padding: "16px 24px 24px" } }}
@@ -171,7 +174,7 @@ export default function AnalyticsPage() {
                   <Bar
                     dataKey="session_count"
                     fill="url(#barGradient)"
-                    name="Sessions"
+                    name={t('chartLabelSessions')}
                     radius={[0, 6, 6, 0]}
                     barSize={28}
                   />
@@ -179,7 +182,7 @@ export default function AnalyticsPage() {
               </ResponsiveContainer>
             ) : (
               <div className="empty-state" style={{ height: 320 }}>
-                <Text style={{ color: "#9CA3AF" }}>No data yet</Text>
+                <Text style={{ color: "#9CA3AF" }}>{t('noDataYet')}</Text>
               </div>
             )}
           </Card>
@@ -187,7 +190,7 @@ export default function AnalyticsPage() {
       </Row>
 
       <Card
-        title="Top Performers"
+        title={t('topPerformers')}
         loading={loading}
         variant="borderless"
         styles={{ body: { padding: "0 24px 24px" } }}
@@ -199,7 +202,7 @@ export default function AnalyticsPage() {
           size="middle"
           columns={[
             {
-              title: "Rank",
+              title: t('table.rank'),
               key: "rank",
               render: (_, __, idx) => (
                 <div
@@ -229,7 +232,7 @@ export default function AnalyticsPage() {
               width: 60,
             },
             {
-              title: "User",
+              title: t('table.user'),
               dataIndex: "user_name",
               key: "user_name",
               render: (name: string) => (
@@ -237,7 +240,7 @@ export default function AnalyticsPage() {
               ),
             },
             {
-              title: "Team",
+              title: t('table.team'),
               dataIndex: "team_name",
               key: "team_name",
               render: (name: string | null) => (
@@ -245,13 +248,13 @@ export default function AnalyticsPage() {
               ),
             },
             {
-              title: "Avg Score",
+              title: t('table.avgScore'),
               dataIndex: "avg_score",
               key: "avg_score",
               render: (score: number) => <ScoreDisplay score={score} size="small" />,
             },
             {
-              title: "Sessions",
+              title: t('table.sessions'),
               dataIndex: "total_sessions",
               key: "total_sessions",
             },

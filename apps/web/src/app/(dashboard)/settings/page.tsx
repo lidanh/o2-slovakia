@@ -17,6 +17,7 @@ import {
   LinkOutlined,
   ApiOutlined,
 } from "@ant-design/icons";
+import {useTranslations} from 'next-intl';
 import PageHeader from "@/components/common/PageHeader";
 
 const { Text } = Typography;
@@ -27,6 +28,8 @@ interface FormValues {
 }
 
 export default function SettingsPage() {
+  const t = useTranslations('Settings');
+  const tCommon = useTranslations('Common');
   const [form] = Form.useForm<FormValues>();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -66,7 +69,7 @@ export default function SettingsPage() {
         api_key: wonderful.api_key ?? "",
       });
     } catch {
-      message.error("Failed to load configuration");
+      message.error(tCommon('messages.failedToLoadConfig'));
     } finally {
       setLoading(false);
     }
@@ -107,9 +110,9 @@ export default function SettingsPage() {
 
       const data = await res.json();
       setExistingConfig(data.config ?? merged);
-      message.success("Configuration saved");
+      message.success(tCommon('messages.configSaved'));
     } catch {
-      message.error("Failed to save configuration");
+      message.error(tCommon('messages.failedToSaveConfig'));
     } finally {
       setSaving(false);
     }
@@ -129,7 +132,7 @@ export default function SettingsPage() {
 
   return (
     <>
-      <PageHeader title="Settings" subtitle="Configure the AI agent" />
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
       <Card variant="borderless" styles={{ body: { padding: 0 } }}>
         <Flex
@@ -142,11 +145,11 @@ export default function SettingsPage() {
         >
           <div>
             <Text strong style={{ fontSize: 15 }}>
-              Agent Configuration
+              {t('agentConfiguration')}
             </Text>
             <br />
             <Text style={{ fontSize: 12, color: "#9CA3AF" }}>
-              Wonderful agent ID and API key
+              {t('agentConfigSubtitle')}
             </Text>
           </div>
           <Space>
@@ -156,7 +159,7 @@ export default function SettingsPage() {
               loading={loading}
               className="icon-spin-hover"
             >
-              Reload
+              {t('reload')}
             </Button>
             <Button
               type="primary"
@@ -165,7 +168,7 @@ export default function SettingsPage() {
               loading={saving}
               disabled={!formValid}
             >
-              Save Changes
+              {t('saveChanges')}
             </Button>
           </Space>
         </Flex>
@@ -182,29 +185,29 @@ export default function SettingsPage() {
               <Flex align="center" gap={8} style={{ marginBottom: 16 }}>
                 <ApiOutlined style={{ fontSize: 16, color: "#0112AA" }} />
                 <Text strong style={{ fontSize: 14 }}>
-                  Wonderful AI
+                  {t('wonderfulAi')}
                 </Text>
               </Flex>
 
               <Form.Item
-                label="Tenant URL"
+                label={t('tenantUrl')}
                 name="tenant_url"
                 rules={[
-                  { required: true, message: "Tenant URL is required" },
-                  { type: "url", message: "Must be a valid URL" },
+                  { required: true, message: t('tenantUrlRequired') },
+                  { type: "url", message: t('tenantUrlInvalid') },
                 ]}
               >
-                <Input placeholder="https://app.wonderful.ai" />
+                <Input placeholder={t('tenantUrlPlaceholder')} />
               </Form.Item>
 
               <Form.Item
-                label="API Key"
+                label={t('apiKey')}
                 name="api_key"
                 rules={[
-                  { required: true, message: "API Key is required" },
+                  { required: true, message: t('apiKeyRequired') },
                 ]}
               >
-                <Input.Password placeholder="wnd_..." />
+                <Input.Password placeholder={t('apiKeyPlaceholder')} />
               </Form.Item>
 
               {tenantUrl && (
@@ -227,12 +230,12 @@ export default function SettingsPage() {
                         color: "#0112AA",
                       }}
                     >
-                      Derived URLs
+                      {t('derivedUrls')}
                     </Text>
                   </Flex>
                   <div style={{ marginBottom: 4 }}>
                     <Text style={{ fontSize: 11, color: "#6B7280" }}>
-                      TwiML URL
+                      {t('twimlUrl')}
                     </Text>
                     <br />
                     <Text
@@ -244,7 +247,7 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <Text style={{ fontSize: 11, color: "#6B7280" }}>
-                      WebSocket URL
+                      {t('webSocketUrl')}
                     </Text>
                     <br />
                     <Text

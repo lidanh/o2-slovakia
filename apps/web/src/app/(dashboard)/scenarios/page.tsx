@@ -3,12 +3,15 @@
 import { useState, useEffect } from "react";
 import { Select, Modal, Form, Button, App } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
+import {useTranslations} from 'next-intl';
 import PageHeader from "@/components/common/PageHeader";
 import ScenarioTable from "@/components/scenarios/ScenarioTable";
 import ScenarioForm from "@/components/scenarios/ScenarioForm";
 import type { Scenario, ScenarioType, CreateScenarioPayload } from "@repo/shared";
 
 export default function ScenariosPage() {
+  const t = useTranslations('Scenarios');
+  const tCommon = useTranslations('Common');
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState<ScenarioType | "all">("all");
@@ -31,7 +34,7 @@ export default function ScenariosPage() {
       const data = await res.json();
       setScenarios(data);
     } catch {
-      message.error("Failed to load scenarios");
+      message.error(tCommon('messages.failedToLoadScenarios'));
     } finally {
       setLoading(false);
     }
@@ -48,9 +51,9 @@ export default function ScenariosPage() {
       setScenarios((prev) =>
         prev.map((s) => (s.id === id ? { ...s, is_active: active } : s))
       );
-      message.success(`Scenario ${active ? "activated" : "deactivated"}`);
+      message.success(active ? tCommon('messages.scenarioActivated') : tCommon('messages.scenarioDeactivated'));
     } catch {
-      message.error("Failed to update scenario");
+      message.error(tCommon('messages.failedToUpdateScenario'));
     }
   }
 
@@ -63,12 +66,12 @@ export default function ScenariosPage() {
         body: JSON.stringify(values),
       });
       if (!res.ok) throw new Error("Failed to create scenario");
-      message.success("Scenario created");
+      message.success(tCommon('messages.scenarioCreated'));
       setModalOpen(false);
       form.resetFields();
       fetchScenarios();
     } catch {
-      message.error("Failed to create scenario");
+      message.error(tCommon('messages.failedToCreateScenario'));
     } finally {
       setSubmitting(false);
     }
@@ -82,8 +85,8 @@ export default function ScenariosPage() {
   return (
     <>
       <PageHeader
-        title="Scenarios"
-        subtitle="Manage training scenarios"
+        title={t('title')}
+        subtitle={t('subtitle')}
         extra={
           <>
             <Select
@@ -91,9 +94,9 @@ export default function ScenariosPage() {
               onChange={setTypeFilter}
               style={{ width: 150 }}
               options={[
-                { value: "all", label: "All Types" },
-                { value: "frontline", label: "Frontline" },
-                { value: "leadership", label: "Leadership" },
+                { value: "all", label: tCommon('scenarioTypes.allTypes') },
+                { value: "frontline", label: tCommon('scenarioTypes.frontline') },
+                { value: "leadership", label: tCommon('scenarioTypes.leadership') },
               ]}
             />
             <Button
@@ -101,7 +104,7 @@ export default function ScenariosPage() {
               icon={<PlusOutlined />}
               onClick={() => setModalOpen(true)}
             >
-              New Scenario
+              {t('newScenario')}
             </Button>
           </>
         }
@@ -113,7 +116,7 @@ export default function ScenariosPage() {
       />
 
       <Modal
-        title="Create Scenario"
+        title={t('createScenario')}
         open={modalOpen}
         onCancel={() => {
           setModalOpen(false);
@@ -122,7 +125,7 @@ export default function ScenariosPage() {
         onOk={() => form.submit()}
         confirmLoading={submitting}
         width={720}
-        okText="Create Scenario"
+        okText={t('createScenario')}
         destroyOnHidden
         footer={formReady ? undefined : null}
         okButtonProps={{ disabled: !formValid }}

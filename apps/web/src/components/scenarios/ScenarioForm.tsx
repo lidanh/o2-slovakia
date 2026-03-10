@@ -5,6 +5,7 @@ import { Form, Input, Select, Slider, InputNumber, Result, Badge, Tabs } from "a
 import { PlusOutlined, SettingOutlined, ApiOutlined, CloseOutlined } from "@ant-design/icons";
 import { Button } from "antd";
 import { useRouter } from "next/navigation";
+import {useTranslations} from 'next-intl';
 import type { CreateScenarioPayload, CreateDifficultyLevelPayload, WonderfulAgent } from "@repo/shared";
 import type { FormInstance } from "antd";
 import MarkdownEditor from "@/components/common/MarkdownEditor";
@@ -33,6 +34,8 @@ const DEFAULT_VALUES: Partial<CreateScenarioPayload> = {
 };
 
 export default function ScenarioForm({ onSubmit, loading, initialValues, form: externalForm, hideSubmitButton, onFormReady, onValidityChange }: ScenarioFormProps) {
+  const t = useTranslations('Scenarios');
+  const tCommon = useTranslations('Common');
   const [internalForm] = Form.useForm();
   const form = externalForm || internalForm;
   const router = useRouter();
@@ -132,11 +135,11 @@ export default function ScenarioForm({ onSubmit, loading, initialValues, form: e
     return (
       <Result
         icon={<SettingOutlined style={{ color: "#0112AA" }} />}
-        title="Connect to Wonderful AI"
-        subTitle="To create training scenarios, you'll need to connect your Wonderful AI tenant first. Add your tenant URL and API key in Settings to get started."
+        title={t('connectWonderful.title')}
+        subTitle={t('connectWonderful.subtitle')}
         extra={
           <Button type="primary" onClick={() => router.push("/settings")}>
-            Go to Settings
+            {tCommon('buttons.goToSettings')}
           </Button>
         }
       />
@@ -147,8 +150,8 @@ export default function ScenarioForm({ onSubmit, loading, initialValues, form: e
     return (
       <Result
         icon={<ApiOutlined style={{ color: "#0112AA" }} />}
-        title="No agents available yet"
-        subTitle="Create at least one AI agent in your Wonderful AI tenant, then return here to build your training scenarios."
+        title={t('noAgents.title')}
+        subTitle={t('noAgents.subtitle')}
       />
     );
   }
@@ -186,7 +189,7 @@ export default function ScenarioForm({ onSubmit, loading, initialValues, form: e
               }
 
               const tabs = [
-                { key: SCENARIO_TAB_KEY, label: "Scenario Details", closable: false, hasErrors: scenarioHasErrors },
+                { key: SCENARIO_TAB_KEY, label: t('form.scenarioDetails'), closable: false, hasErrors: scenarioHasErrors },
                 ...fields.map(({ key, name }) => {
                   const levelName = safeDifficultyLevels[name]?.name;
                   return {
@@ -227,7 +230,7 @@ export default function ScenarioForm({ onSubmit, loading, initialValues, form: e
                           }}
                           style={{ color: "#6b7280", fontSize: 13 }}
                         >
-                          Add Level
+                          {t('form.addLevel')}
                         </Button>
                       ),
                     }}
@@ -237,8 +240,8 @@ export default function ScenarioForm({ onSubmit, loading, initialValues, form: e
                         <Badge dot={tab.hasErrors} offset={[2, -1]} status="error">
                           <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                             {tab.key === SCENARIO_TAB_KEY
-                              ? "Scenario Details"
-                              : tab.label || <span style={{ fontStyle: "italic", opacity: 0.6 }}>New Level</span>}
+                              ? t('form.scenarioDetails')
+                              : tab.label || <span style={{ fontStyle: "italic", opacity: 0.6 }}>{t('form.newLevel')}</span>}
                             {tab.closable && (
                               <CloseOutlined
                                 style={{ fontSize: 10, color: "#9CA3AF", marginLeft: 4 }}
@@ -272,25 +275,25 @@ export default function ScenarioForm({ onSubmit, loading, initialValues, form: e
                       <Form.Item
                         {...restField}
                         name={[name, "name"]}
-                        label="Name"
-                        rules={[{ required: true, message: "Name is required" }]}
+                        label={t('form.name')}
+                        rules={[{ required: true, message: t('form.nameRequired') }]}
                       >
-                        <Input placeholder="e.g. Easy, Medium, Hard" />
+                        <Input placeholder={t('form.difficultyNamePlaceholder')} />
                       </Form.Item>
 
                       <Form.Item
                         {...restField}
                         name={[name, "prompt"]}
-                        label="Difficulty Prompt"
-                        rules={[{ required: true, message: "Prompt is required" }]}
+                        label={t('form.difficultyPrompt')}
+                        rules={[{ required: true, message: t('form.promptRequired') }]}
                       >
-                        <MarkdownEditor height={200} placeholder="Additional prompt modifiers for this difficulty" />
+                        <MarkdownEditor height={200} placeholder={t('form.difficultyPromptPlaceholder')} />
                       </Form.Item>
 
                       <Form.Item
                         {...restField}
                         name={[name, "resistance_level"]}
-                        label="Resistance Level"
+                        label={t('form.resistanceLevel')}
                       >
                         <Slider min={1} max={10} marks={{ 1: "1", 5: "5", 10: "10" }} />
                       </Form.Item>
@@ -298,7 +301,7 @@ export default function ScenarioForm({ onSubmit, loading, initialValues, form: e
                       <Form.Item
                         {...restField}
                         name={[name, "emotional_intensity"]}
-                        label="Emotional Intensity"
+                        label={t('form.emotionalIntensity')}
                       >
                         <Slider min={1} max={10} marks={{ 1: "1", 5: "5", 10: "10" }} />
                       </Form.Item>
@@ -306,7 +309,7 @@ export default function ScenarioForm({ onSubmit, loading, initialValues, form: e
                       <Form.Item
                         {...restField}
                         name={[name, "cooperation"]}
-                        label="Cooperation"
+                        label={t('form.cooperation')}
                       >
                         <Slider min={1} max={10} marks={{ 1: "1", 5: "5", 10: "10" }} />
                       </Form.Item>
@@ -327,32 +330,32 @@ export default function ScenarioForm({ onSubmit, loading, initialValues, form: e
               use display:none and take no space, so this flows right below
               the Tabs bar visually. */}
           <div style={{ display: activeTab === SCENARIO_TAB_KEY ? "block" : "none", animation: activeTab === SCENARIO_TAB_KEY ? "fadeIn 0.25s ease-out" : "none" }}>
-            <Form.Item name="name" label="Name" rules={[{ required: true, message: "Name is required" }]}>
-              <Input placeholder="Scenario name" />
+            <Form.Item name="name" label={t('form.name')} rules={[{ required: true, message: t('form.nameRequired') }]}>
+              <Input placeholder={t('form.namePlaceholder')} />
             </Form.Item>
 
-            <Form.Item name="description" label="Description">
-              <TextArea rows={3} placeholder="Scenario description" />
+            <Form.Item name="description" label={t('form.description')}>
+              <TextArea rows={3} placeholder={t('form.descriptionPlaceholder')} />
             </Form.Item>
 
-            <Form.Item name="prompt" label="Base Prompt" rules={[{ required: true, message: "Prompt is required" }]}>
-              <MarkdownEditor height={300} placeholder="Base prompt for the AI agent" />
+            <Form.Item name="prompt" label={t('form.basePrompt')} rules={[{ required: true, message: t('form.promptRequired') }]}>
+              <MarkdownEditor height={300} placeholder={t('form.basePromptPlaceholder')} />
             </Form.Item>
 
-            <Form.Item name="type" label="Type" rules={[{ required: true }]}>
+            <Form.Item name="type" label={t('form.type')} rules={[{ required: true }]}>
               <Select
                 options={[
-                  { value: "frontline", label: "Frontline" },
-                  { value: "leadership", label: "Leadership" },
+                  { value: "frontline", label: tCommon('scenarioTypes.frontline') },
+                  { value: "leadership", label: tCommon('scenarioTypes.leadership') },
                 ]}
               />
             </Form.Item>
 
-            <Form.Item name="agent_id" label="AI Agent" rules={agentStatus === "ready" ? [{ required: true, message: "Select an AI agent" }] : []}>
+            <Form.Item name="agent_id" label={t('form.aiAgent')} rules={agentStatus === "ready" ? [{ required: true, message: t('form.selectAgent') }] : []}>
               <Select
                 allowClear
                 showSearch
-                placeholder={agentStatus === "loading" ? "Loading agents..." : agentStatus === "error" ? "Failed to load agents" : "Use default agent"}
+                placeholder={agentStatus === "loading" ? t('form.loadingAgents') : agentStatus === "error" ? t('form.failedToLoadAgents') : t('form.useDefaultAgent')}
                 loading={agentStatus === "loading"}
                 disabled={agentStatus === "loading" || agentStatus === "error"}
                 filterOption={(input, option) =>
@@ -369,7 +372,7 @@ export default function ScenarioForm({ onSubmit, loading, initialValues, form: e
           {!hideSubmitButton && (
             <Form.Item style={{ marginTop: 24 }}>
               <Button type="primary" htmlType="submit" loading={loading}>
-                Save Scenario
+                {tCommon('buttons.saveScenario')}
               </Button>
             </Form.Item>
           )}

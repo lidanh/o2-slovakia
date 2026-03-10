@@ -16,6 +16,7 @@ import {
   App,
 } from "antd";
 import { PlusOutlined, DeleteOutlined, TeamOutlined, TrophyOutlined, PhoneOutlined } from "@ant-design/icons";
+import { useTranslations } from "next-intl";
 import type { ColumnsType } from "antd/es/table";
 import type { TeamWithMembers, User } from "@repo/shared";
 import PageHeader from "@/components/common/PageHeader";
@@ -39,6 +40,8 @@ interface TeamStats {
 }
 
 export default function TeamDetailPage() {
+  const t = useTranslations('Teams');
+  const tCommon = useTranslations('Common');
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
@@ -69,7 +72,7 @@ export default function TeamDetailPage() {
       if (usersRes.ok) setAllUsers(await usersRes.json());
       if (statsRes.ok) setStats(await statsRes.json());
     } catch {
-      message.error("Failed to load team data");
+      message.error(tCommon('messages.failedToLoadTeamData'));
     } finally {
       setLoading(false);
     }
@@ -89,11 +92,11 @@ export default function TeamDetailPage() {
         body: JSON.stringify({ team_id: id }),
       });
       if (!res.ok) throw new Error("Failed to add member");
-      message.success("Member added");
+      message.success(tCommon('messages.memberAdded'));
       setSelectedUserId(null);
       fetchData();
     } catch {
-      message.error("Failed to add member");
+      message.error(tCommon('messages.failedToAddMember'));
     } finally {
       setAddLoading(false);
     }
@@ -107,10 +110,10 @@ export default function TeamDetailPage() {
         body: JSON.stringify({ team_id: null }),
       });
       if (!res.ok) throw new Error("Failed to remove member");
-      message.success("Member removed");
+      message.success(tCommon('messages.memberRemoved'));
       fetchData();
     } catch {
-      message.error("Failed to remove member");
+      message.error(tCommon('messages.failedToRemoveMember'));
     }
   }
 
@@ -122,7 +125,7 @@ export default function TeamDetailPage() {
     );
   }
 
-  if (!team) return <div>Team not found</div>;
+  if (!team) return <div>{t('teamNotFound')}</div>;
 
   const memberIds = new Set(team.members.map((m) => m.id));
   const availableUsers = allUsers.filter((u) => !memberIds.has(u.id));
@@ -172,27 +175,27 @@ export default function TeamDetailPage() {
       render: (rank: number) => rankBadge(rank),
     },
     {
-      title: "Name",
+      title: t('detail.name'),
       dataIndex: "userName",
       key: "userName",
       render: (name: string) => <Text strong style={{ fontSize: 13 }}>{name}</Text>,
     },
     {
-      title: "Avg Score",
+      title: t('detail.avgScoreCol'),
       dataIndex: "avgScore",
       key: "avgScore",
       width: 120,
       render: (score: number | null) => <ScoreDisplay score={score} size="small" />,
     },
     {
-      title: "Sessions",
+      title: t('detail.sessionsCol'),
       dataIndex: "totalSessions",
       key: "totalSessions",
       width: 100,
       render: (count: number) => <Text style={{ fontSize: 13 }}>{count}</Text>,
     },
     {
-      title: "Last Activity",
+      title: t('detail.lastActivity'),
       dataIndex: "lastSessionDate",
       key: "lastSessionDate",
       width: 140,
@@ -208,9 +211,9 @@ export default function TeamDetailPage() {
       width: 100,
       render: (_, r) => (
         <span onClick={(e) => e.stopPropagation()}>
-          <Popconfirm title="Remove from team?" onConfirm={() => handleRemoveMember(r.userId)}>
+          <Popconfirm title={t('detail.removeFromTeam')} onConfirm={() => handleRemoveMember(r.userId)}>
             <Button type="text" danger size="small" icon={<DeleteOutlined />}>
-              Remove
+              {t('detail.remove')}
             </Button>
           </Popconfirm>
         </span>
@@ -220,7 +223,7 @@ export default function TeamDetailPage() {
 
   return (
     <>
-      <PageHeader title={team.name} subtitle="Team details" backHref="/teams" />
+      <PageHeader title={team.name} subtitle={t('teamDetails')} backHref="/teams" />
 
       <Row gutter={[20, 20]} style={{ marginBottom: 20 }}>
         <Col xs={24} lg={16}>
@@ -244,7 +247,7 @@ export default function TeamDetailPage() {
                 <Text strong style={{ fontSize: 18, fontWeight: 700 }}>{team.name}</Text>
                 <br />
                 <Text style={{ color: "#9CA3AF", fontSize: 13 }}>
-                  {team.members.length} member{team.members.length !== 1 ? "s" : ""}
+                  {t('detail.memberPlural', { count: team.members.length })}
                 </Text>
               </div>
             </div>
@@ -264,7 +267,7 @@ export default function TeamDetailPage() {
                 styles={{ body: { padding: "20px" } }}
               >
                 <Text style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", color: "#6b7280" }}>
-                  Avg Score
+                  {t('detail.avgScore')}
                 </Text>
                 <div style={{ fontSize: 28, fontWeight: 800, color: "#1a1a2e", marginTop: 4, display: "flex", alignItems: "center", gap: 8 }}>
                   {stats.avgScore !== null ? `${stats.avgScore.toFixed(1)}%` : "—"}
@@ -279,7 +282,7 @@ export default function TeamDetailPage() {
                 styles={{ body: { padding: "20px" } }}
               >
                 <Text style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", color: "#6b7280" }}>
-                  Sessions
+                  {t('detail.sessions')}
                 </Text>
                 <div style={{ fontSize: 28, fontWeight: 800, color: "#1a1a2e", marginTop: 4, display: "flex", alignItems: "center", gap: 8 }}>
                   {stats.totalSessions}
@@ -294,13 +297,13 @@ export default function TeamDetailPage() {
       <Card
         variant="borderless"
         styles={{ body: { padding: "0 24px 24px" } }}
-        title={`Members (${team.members.length})`}
+        title={t('detail.membersCount', { count: team.members.length })}
         extra={
           <Space>
             <Select
               value={selectedUserId}
               onChange={setSelectedUserId}
-              placeholder="Select user to add"
+              placeholder={t('detail.selectUserToAdd')}
               style={{ width: 250 }}
               allowClear
               showSearch
@@ -319,7 +322,7 @@ export default function TeamDetailPage() {
               loading={addLoading}
               disabled={!selectedUserId}
             >
-              Add Member
+              {t('detail.addMember')}
             </Button>
           </Space>
         }
@@ -330,7 +333,7 @@ export default function TeamDetailPage() {
           rowKey="userId"
           pagination={false}
           size="middle"
-          locale={{ emptyText: "No members yet" }}
+          locale={{ emptyText: t('detail.noMembersYet') }}
           onRow={(record) => ({
             style: { cursor: "pointer" },
             onClick: () => router.push(`/users/${record.userId}`),

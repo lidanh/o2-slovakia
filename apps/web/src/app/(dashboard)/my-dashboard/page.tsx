@@ -18,44 +18,46 @@ import type {
   AssignmentWithDetails,
 } from "@repo/shared";
 import {
-  SESSION_STATUS_LABELS,
   SESSION_STATUS_COLORS,
   ASSIGNMENT_STATUS_COLORS,
 } from "@repo/shared";
+import {useTranslations} from 'next-intl';
 
 const { Text, Title } = Typography;
-
-const kpiConfig = [
-  {
-    title: "Total Sessions",
-    icon: <PhoneOutlined style={{ fontSize: 20 }} />,
-    gradient: "linear-gradient(135deg, #0112AA 0%, #2563EB 100%)",
-    bgGradient: "linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%)",
-  },
-  {
-    title: "Average Score",
-    icon: <TrophyOutlined style={{ fontSize: 20 }} />,
-    gradient: "linear-gradient(135deg, #059669 0%, #34D399 100%)",
-    bgGradient: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)",
-  },
-  {
-    title: "Pending Assignments",
-    icon: <BookOutlined style={{ fontSize: 20 }} />,
-    gradient: "linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%)",
-    bgGradient: "linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)",
-  },
-  {
-    title: "Best Score",
-    icon: <StarOutlined style={{ fontSize: 20 }} />,
-    gradient: "linear-gradient(135deg, #D97706 0%, #FBBF24 100%)",
-    bgGradient: "linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)",
-  },
-];
 
 export default function MyDashboardPage() {
   const router = useRouter();
   const { message } = App.useApp();
   const { user } = useAuth();
+  const t = useTranslations('MyDashboard');
+  const tCommon = useTranslations('Common');
+
+  const kpiConfig = [
+    {
+      title: t('totalSessions'),
+      icon: <PhoneOutlined style={{ fontSize: 20 }} />,
+      gradient: "linear-gradient(135deg, #0112AA 0%, #2563EB 100%)",
+      bgGradient: "linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%)",
+    },
+    {
+      title: t('averageScore'),
+      icon: <TrophyOutlined style={{ fontSize: 20 }} />,
+      gradient: "linear-gradient(135deg, #059669 0%, #34D399 100%)",
+      bgGradient: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)",
+    },
+    {
+      title: t('pendingAssignments'),
+      icon: <BookOutlined style={{ fontSize: 20 }} />,
+      gradient: "linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%)",
+      bgGradient: "linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)",
+    },
+    {
+      title: t('bestScore'),
+      icon: <StarOutlined style={{ fontSize: 20 }} />,
+      gradient: "linear-gradient(135deg, #D97706 0%, #FBBF24 100%)",
+      bgGradient: "linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)",
+    },
+  ];
   const [sessions, setSessions] = useState<SessionWithDetails[]>([]);
   const [assignments, setAssignments] = useState<AssignmentWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,7 +80,7 @@ export default function MyDashboardPage() {
           setAssignments(Array.isArray(json) ? json : json.data ?? []);
         }
       } catch {
-        message.error("Failed to load dashboard data");
+        message.error(tCommon('messages.failedToLoadDashboard'));
       } finally {
         setLoading(false);
       }
@@ -118,8 +120,8 @@ export default function MyDashboardPage() {
   return (
     <>
       <PageHeader
-        title={`Welcome back, ${user.name}`}
-        subtitle="Your personal training overview"
+        title={t('welcomeBack', { name: user.name })}
+        subtitle={t('subtitle')}
       />
 
       <Row gutter={[20, 20]} className="animate-stagger">
@@ -183,7 +185,7 @@ export default function MyDashboardPage() {
 
       {/* Assigned Scenarios */}
       <Title level={4} style={{ marginTop: 32, marginBottom: 16, fontWeight: 500 }}>
-        Your Assigned Scenarios
+        {t('yourAssignedScenarios')}
       </Title>
       {loading ? (
         <Spin style={{ display: "block", margin: "40px auto" }} />
@@ -193,14 +195,14 @@ export default function MyDashboardPage() {
             <Col xs={24} sm={12} lg={8} key={a.id}>
               <Card variant="borderless" styles={{ body: { padding: 20 } }}>
                 <Text strong style={{ fontSize: 15, display: "block", marginBottom: 4 }}>
-                  {a.scenario?.name ?? "Unknown Scenario"}
+                  {a.scenario?.name ?? t('unknownScenario')}
                 </Text>
                 <Text style={{ color: "#6b7280", fontSize: 13, display: "block", marginBottom: 12 }}>
-                  {a.difficulty_level?.name ?? "Default"}
+                  {a.difficulty_level?.name ?? t('default')}
                 </Text>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <Tag color={ASSIGNMENT_STATUS_COLORS[a.status]}>
-                    {a.status === "pending" ? "Pending" : "In Progress"}
+                    {a.status === "pending" ? tCommon('assignmentStatus.pending') : tCommon('assignmentStatus.inProgress')}
                   </Tag>
                   <CallTriggerButton
                     assignmentId={a.id}
@@ -217,14 +219,14 @@ export default function MyDashboardPage() {
           <div style={{ textAlign: "center", padding: "24px 0" }}>
             <BookOutlined style={{ fontSize: 32, color: "#d9d9d9", marginBottom: 8 }} />
             <br />
-            <Text style={{ color: "#9CA3AF" }}>No pending assignments</Text>
+            <Text style={{ color: "#9CA3AF" }}>{t('noPendingAssignments')}</Text>
           </div>
         </Card>
       )}
 
       {/* Recent Sessions */}
       <Title level={4} style={{ marginTop: 32, marginBottom: 16, fontWeight: 500 }}>
-        Recent Sessions
+        {t('recentSessions')}
       </Title>
       <Card variant="borderless" styles={{ body: { padding: "0 24px 24px" } }}>
         <Table
@@ -233,14 +235,14 @@ export default function MyDashboardPage() {
           loading={loading}
           pagination={false}
           size="small"
-          locale={{ emptyText: "No sessions yet" }}
+          locale={{ emptyText: t('noSessionsYet') }}
           onRow={(record) => ({
             style: { cursor: "pointer" },
             onClick: () => router.push(`/training/${record.id}`),
           })}
           columns={[
             {
-              title: "Date",
+              title: tCommon('fields.date'),
               dataIndex: "created_at",
               key: "date",
               render: (d: string) =>
@@ -251,12 +253,12 @@ export default function MyDashboardPage() {
                 }),
             },
             {
-              title: "Scenario",
+              title: tCommon('fields.scenario'),
               key: "scenario",
               render: (_, r) => r.scenario?.name ?? "—",
             },
             {
-              title: "Score",
+              title: tCommon('fields.score'),
               dataIndex: "score",
               key: "score",
               width: 80,
@@ -265,15 +267,27 @@ export default function MyDashboardPage() {
               ),
             },
             {
-              title: "Status",
+              title: tCommon('fields.status'),
               dataIndex: "status",
               key: "status",
               width: 110,
-              render: (s: SessionWithDetails["status"]) => (
-                <Tag color={SESSION_STATUS_COLORS[s]} style={{ fontSize: 11 }}>
-                  {SESSION_STATUS_LABELS[s]}
-                </Tag>
-              ),
+              render: (s: SessionWithDetails["status"]) => {
+                const statusKeyMap: Record<string, string> = {
+                  initiated: 'initiated',
+                  ringing: 'ringing',
+                  in_progress: 'inProgress',
+                  completed: 'completed',
+                  failed: 'failed',
+                  no_answer: 'noAnswer',
+                  busy: 'busy',
+                  canceled: 'canceled',
+                };
+                return (
+                  <Tag color={SESSION_STATUS_COLORS[s]} style={{ fontSize: 11 }}>
+                    {tCommon(`status.${statusKeyMap[s] ?? s}` as any)}
+                  </Tag>
+                );
+              },
             },
           ]}
         />

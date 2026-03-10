@@ -3,6 +3,7 @@
 import { Flex, Typography, Button, Space } from "antd";
 import { ArrowLeftOutlined, PlusOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
+import {useTranslations} from 'next-intl';
 
 const { Title, Text } = Typography;
 
@@ -24,6 +25,7 @@ export default function PageHeader({
   extra,
 }: PageHeaderProps) {
   const router = useRouter();
+  const t = useTranslations('Common');
 
   return (
     <Flex
@@ -82,7 +84,7 @@ export default function PageHeader({
             icon={<PlusOutlined />}
             onClick={() => router.push(createHref)}
           >
-            {createLabel ?? "Create"}
+            {createLabel ?? t('buttons.create')}
           </Button>
         )}
       </Space>

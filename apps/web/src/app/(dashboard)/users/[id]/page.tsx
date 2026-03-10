@@ -14,6 +14,7 @@ import {
   App,
 } from "antd";
 import { PlusOutlined, TrophyOutlined, PhoneOutlined, UserOutlined, MailOutlined } from "@ant-design/icons";
+import { useTranslations } from "next-intl";
 import {
   XAxis,
   YAxis,
@@ -42,6 +43,8 @@ import AssignScenarioModal from "@/components/users/AssignScenarioModal";
 const { Text } = Typography;
 
 export default function UserDetailPage() {
+  const t = useTranslations('Users');
+  const tCommon = useTranslations('Common');
   const params = useParams();
   const id = params.id as string;
   const router = useRouter();
@@ -69,7 +72,7 @@ export default function UserDetailPage() {
         setSessions(Array.isArray(sessionsJson) ? sessionsJson : sessionsJson.data ?? []);
       }
     } catch {
-      message.error("Failed to load user data");
+      message.error(tCommon('messages.failedToLoadUserData'));
     } finally {
       setLoading(false);
     }
@@ -87,7 +90,7 @@ export default function UserDetailPage() {
     );
   }
 
-  if (!user) return <div>User not found</div>;
+  if (!user) return <div>{t('userNotFound')}</div>;
 
   const completedSessions = sessions.filter((s) => s.status === "completed");
   const validScored = completedSessions.filter((s) => isValidScore(s.score));
@@ -103,17 +106,17 @@ export default function UserDetailPage() {
 
   const assignmentColumns: ColumnsType<AssignmentWithDetails> = [
     {
-      title: "Scenario",
+      title: tCommon('fields.scenario'),
       key: "scenario",
       render: (_, r) => <Text strong style={{ fontSize: 13 }}>{r.scenario?.name ?? "—"}</Text>,
     },
     {
-      title: "Difficulty",
+      title: tCommon('fields.difficulty'),
       key: "difficulty",
       render: (_, r) => r.difficulty_level?.name ?? "—",
     },
     {
-      title: "Status",
+      title: tCommon('fields.status'),
       dataIndex: "status",
       key: "status",
       render: (status: AssignmentWithDetails["status"]) => (
@@ -126,24 +129,24 @@ export default function UserDetailPage() {
 
   const sessionColumns: ColumnsType<SessionWithDetails> = [
     {
-      title: "Scenario",
+      title: tCommon('fields.scenario'),
       key: "scenario",
       render: (_, r) => <Text strong style={{ fontSize: 13 }}>{r.scenario?.name ?? "—"}</Text>,
     },
     {
-      title: "Score",
+      title: tCommon('fields.score'),
       dataIndex: "score",
       key: "score",
       render: (score: number | null) => <ScoreDisplay score={score} size="small" />,
     },
     {
-      title: "Status",
+      title: tCommon('fields.status'),
       dataIndex: "status",
       key: "status",
       render: (status: string) => <Tag>{status}</Tag>,
     },
     {
-      title: "Date",
+      title: tCommon('fields.date'),
       dataIndex: "created_at",
       key: "created_at",
       render: (d: string) => new Date(d).toLocaleDateString("sk-SK"),
@@ -154,7 +157,7 @@ export default function UserDetailPage() {
     <>
       <PageHeader
         title={user.name}
-        subtitle="User profile"
+        subtitle={t('userProfile')}
         backHref="/users"
       />
 
@@ -179,7 +182,7 @@ export default function UserDetailPage() {
                     <UserOutlined style={{ color: "#fff", fontSize: 16 }} />
                   </div>
                   <div>
-                    <Text style={{ fontSize: 12, color: "#9CA3AF", display: "block" }}>Full Name</Text>
+                    <Text style={{ fontSize: 12, color: "#9CA3AF", display: "block" }}>{t('detail.fullName')}</Text>
                     <Text strong style={{ fontSize: 14 }}>{user.name}</Text>
                   </div>
                 </div>
@@ -200,7 +203,7 @@ export default function UserDetailPage() {
                     <MailOutlined style={{ color: "#fff", fontSize: 16 }} />
                   </div>
                   <div>
-                    <Text style={{ fontSize: 12, color: "#9CA3AF", display: "block" }}>Email</Text>
+                    <Text style={{ fontSize: 12, color: "#9CA3AF", display: "block" }}>{t('detail.email')}</Text>
                     <Text strong style={{ fontSize: 14 }}>{user.email}</Text>
                   </div>
                 </div>
@@ -221,7 +224,7 @@ export default function UserDetailPage() {
                     <PhoneOutlined style={{ color: "#fff", fontSize: 16 }} />
                   </div>
                   <div>
-                    <Text style={{ fontSize: 12, color: "#9CA3AF", display: "block" }}>Phone</Text>
+                    <Text style={{ fontSize: 12, color: "#9CA3AF", display: "block" }}>{t('detail.phone')}</Text>
                     <Text strong style={{ fontSize: 14 }}>{user.phone}</Text>
                   </div>
                 </div>
@@ -242,8 +245,8 @@ export default function UserDetailPage() {
                     <Text style={{ fontWeight: 700, fontSize: 11, color: "#6b7280" }}>T</Text>
                   </div>
                   <div>
-                    <Text style={{ fontSize: 12, color: "#9CA3AF", display: "block" }}>Team</Text>
-                    <Text strong style={{ fontSize: 14 }}>{user.team?.name ?? "No team"}</Text>
+                    <Text style={{ fontSize: 12, color: "#9CA3AF", display: "block" }}>{t('detail.team')}</Text>
+                    <Text strong style={{ fontSize: 14 }}>{user.team?.name ?? t('detail.noTeam')}</Text>
                   </div>
                 </div>
               </Col>
@@ -260,7 +263,7 @@ export default function UserDetailPage() {
                 styles={{ body: { padding: "20px" } }}
               >
                 <Text style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", color: "#6b7280" }}>
-                  Avg Score
+                  {t('detail.avgScore')}
                 </Text>
                 <div style={{ fontSize: 28, fontWeight: 800, color: "#1a1a2e", marginTop: 4, display: "flex", alignItems: "center", gap: 8 }}>
                   {avgScore !== null ? `${avgScore.toFixed(1)}%` : "—"}
@@ -275,7 +278,7 @@ export default function UserDetailPage() {
                 styles={{ body: { padding: "20px" } }}
               >
                 <Text style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", color: "#6b7280" }}>
-                  Sessions
+                  {t('detail.sessions')}
                 </Text>
                 <div style={{ fontSize: 28, fontWeight: 800, color: "#1a1a2e", marginTop: 4, display: "flex", alignItems: "center", gap: 8 }}>
                   {completedSessions.length}
@@ -289,7 +292,7 @@ export default function UserDetailPage() {
 
       {scoreTrend.length > 1 && (
         <Card
-          title="Score Trend"
+          title={t('detail.scoreTrend')}
           variant="borderless"
           style={{ marginBottom: 20 }}
           styles={{ body: { padding: "16px 24px 24px" } }}
@@ -323,7 +326,7 @@ export default function UserDetailPage() {
       )}
 
       <Card
-        title="Assigned Scenarios"
+        title={t('detail.assignedScenarios')}
         variant="borderless"
         style={{ marginBottom: 20 }}
         extra={
@@ -332,7 +335,7 @@ export default function UserDetailPage() {
             icon={<PlusOutlined />}
             onClick={() => setAssignModalOpen(true)}
           >
-            Assign Scenario
+            {t('detail.assignScenario')}
           </Button>
         }
         styles={{ body: { padding: "0 24px 24px" } }}
@@ -347,7 +350,7 @@ export default function UserDetailPage() {
       </Card>
 
       <Card
-        title="Training History"
+        title={t('detail.trainingHistory')}
         variant="borderless"
         styles={{ body: { padding: "0 24px 24px" } }}
       >

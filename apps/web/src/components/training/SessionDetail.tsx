@@ -24,6 +24,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
+import {useTranslations} from 'next-intl';
 import type { SessionWithDetails, FeedbackBreakdown, TranscriptEntry } from "@repo/shared";
 import {
   SESSION_STATUS_LABELS,
@@ -37,10 +38,11 @@ import ReportIssueDialog from "@/components/common/ReportIssueDialog";
 
 const { Text, Paragraph } = Typography;
 
-const SCORE_TAG_CONFIG = {
-  passed: { color: "success", label: "Passed" },
-  partially_passed: { color: "warning", label: "Partial" },
-  failed: { color: "error", label: "Failed" },
+// Score tag config labels are overridden by translations inside the component
+const SCORE_TAG_CONFIG_COLORS = {
+  passed: "success",
+  partially_passed: "warning",
+  failed: "error",
 } as const;
 
 interface SessionDetailProps {
@@ -49,9 +51,17 @@ interface SessionDetailProps {
 }
 
 export default function SessionDetail({ session, onSessionUpdate }: SessionDetailProps) {
+  const t = useTranslations('Training');
+  const tCommon = useTranslations('Common');
   const [generating, setGenerating] = useState(false);
   const [issueEntry, setIssueEntry] = useState<TranscriptEntry | null>(null);
   const { message } = App.useApp();
+
+  const SCORE_TAG_CONFIG = {
+    passed: { color: SCORE_TAG_CONFIG_COLORS.passed, label: tCommon('scoreLabels.passed') },
+    partially_passed: { color: SCORE_TAG_CONFIG_COLORS.partially_passed, label: tCommon('scoreLabels.partiallyPassed') },
+    failed: { color: SCORE_TAG_CONFIG_COLORS.failed, label: tCommon('scoreLabels.failed') },
+  } as const;
 
   const canGenerateFeedback =
     session.status === "completed" &&
@@ -69,7 +79,7 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
       const updated = await res.json();
       onSessionUpdate?.(updated);
     } catch {
-      message.error("Failed to generate feedback. Please try again.");
+      message.error(tCommon('messages.failedToGenerateFeedback'));
     } finally {
       setGenerating(false);
     }
@@ -95,10 +105,10 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
     : "\u2014";
 
   const infoItems = [
-    { icon: <UserOutlined />, label: "User", value: session.user?.name ?? "\u2014", gradient: "linear-gradient(135deg, #0112AA, #2563EB)" },
-    { icon: <FileTextOutlined />, label: "Scenario", value: session.scenario?.name ?? "\u2014", gradient: "linear-gradient(135deg, #7C3AED, #A78BFA)" },
-    { icon: <ClockCircleOutlined />, label: "Duration", value: duration, gradient: "linear-gradient(135deg, #059669, #34D399)" },
-    { icon: <CalendarOutlined />, label: "Date", value: new Date(session.created_at).toLocaleString("sk-SK"), gradient: "linear-gradient(135deg, #2563EB, #60A5FA)" },
+    { icon: <UserOutlined />, label: t('detail.user'), value: session.user?.name ?? "\u2014", gradient: "linear-gradient(135deg, #0112AA, #2563EB)" },
+    { icon: <FileTextOutlined />, label: t('detail.scenario'), value: session.scenario?.name ?? "\u2014", gradient: "linear-gradient(135deg, #7C3AED, #A78BFA)" },
+    { icon: <ClockCircleOutlined />, label: t('detail.duration'), value: duration, gradient: "linear-gradient(135deg, #059669, #34D399)" },
+    { icon: <CalendarOutlined />, label: t('detail.date'), value: new Date(session.created_at).toLocaleString("sk-SK"), gradient: "linear-gradient(135deg, #2563EB, #60A5FA)" },
   ];
 
   // Build collapse items for category breakdown
@@ -107,7 +117,7 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
         const emoji = EVALUATION_CATEGORY_EMOJIS[key as keyof typeof EVALUATION_CATEGORY_EMOJIS] ?? "";
         const label = EVALUATION_CATEGORY_LABELS[key as keyof typeof EVALUATION_CATEGORY_LABELS] ?? key;
         const weightLabel = key === "wau_effect"
-          ? "Bonus"
+          ? tCommon('bonus')
           : `${Math.round(cat.weight * 100)}%`;
 
         return {
@@ -209,31 +219,31 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
               session.status === "completed" ? (
                 <Space direction="vertical" size="middle" align="center" style={{ width: "100%" }}>
                   <FileSearchOutlined style={{ fontSize: 32, color: "#9CA3AF" }} />
-                  <Text style={{ fontSize: 14, color: "#6B7280" }}>Feedback not yet generated</Text>
+                  <Text style={{ fontSize: 14, color: "#6B7280" }}>{t('detail.feedbackNotGenerated')}</Text>
                   <Button type="primary" loading={generating} disabled={!canGenerateFeedback} onClick={handleGenerateFeedback}>
-                    {generating ? "Generating..." : "Generate Feedback"}
+                    {generating ? t('detail.generating') : t('detail.generateFeedback')}
                   </Button>
-                  <Text style={{ fontSize: 12, color: "#9CA3AF" }}>This may take a few seconds</Text>
+                  <Text style={{ fontSize: 12, color: "#9CA3AF" }}>{t('detail.generationNote')}</Text>
                 </Space>
               ) : (
                 <Space direction="vertical" size="middle" align="center" style={{ width: "100%" }}>
                   <Spin size="small" />
-                  <Text style={{ fontSize: 14, color: "#6B7280" }}>Waiting for call to complete...</Text>
+                  <Text style={{ fontSize: 14, color: "#6B7280" }}>{t('detail.waitingForCall')}</Text>
                 </Space>
               )
             ) : (
               <Space direction="vertical" size="large" align="center">
                 <div>
-                  <Text style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", color: "#6b7280" }}>Score</Text>
+                  <Text style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", color: "#6b7280" }}>{t('detail.score')}</Text>
                   <div style={{ marginTop: 8 }}><ScoreDisplay score={session.score} /></div>
                 </div>
                 <div>
-                  <Text style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", color: "#6b7280" }}>Rating</Text>
+                  <Text style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", color: "#6b7280" }}>{t('detail.rating')}</Text>
                   <div style={{ marginTop: 8 }}><StarRating rating={session.star_rating} /></div>
                 </div>
                 {hasNewFormat && breakdown!.wau_bonus_percentage > 0 && (
                   <Tag icon={<StarOutlined />} color="gold" style={{ fontSize: 13, padding: "4px 12px" }}>
-                    WAU Bonus: +{breakdown!.wau_bonus_percentage}%
+                    {t('detail.wauBonus', { percentage: breakdown!.wau_bonus_percentage })}
                   </Tag>
                 )}
               </Space>
@@ -243,7 +253,7 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
       </Row>
 
       {session.feedback_summary && (
-        <Card title="Feedback Summary" variant="borderless" className="card-animated" style={{ marginTop: 20, animationDelay: "150ms" }}>
+        <Card title={t('detail.feedbackSummary')} variant="borderless" className="card-animated" style={{ marginTop: 20, animationDelay: "150ms" }}>
           <Paragraph style={{ fontSize: 14, lineHeight: 1.8, color: "#374151", margin: 0 }}>
             {session.feedback_summary}
           </Paragraph>
@@ -253,7 +263,7 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
       {hasNewFormat && collapseItems.length > 0 && (
         <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
           <Col xs={24} lg={14}>
-            <Card title="Category Breakdown" variant="borderless">
+            <Card title={t('detail.categoryBreakdown')} variant="borderless">
               <Collapse
                 ghost
                 items={collapseItems}
@@ -263,7 +273,7 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
           </Col>
           <Col xs={24} lg={10}>
             {radarData.length > 0 && (
-              <Card title="Performance Radar" variant="borderless" styles={{ body: { padding: "16px 24px 24px" } }}>
+              <Card title={t('detail.performanceRadar')} variant="borderless" styles={{ body: { padding: "16px 24px 24px" } }}>
                 <ResponsiveContainer width="100%" height={300}>
                   <RadarChart data={radarData}>
                     <PolarGrid stroke="#E5E7EB" />
@@ -280,7 +290,7 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
       )}
 
       {session.suggestions && session.suggestions.length > 0 && (
-        <Card title="Suggestions" variant="borderless" style={{ marginTop: 20 }}>
+        <Card title={t('detail.suggestions')} variant="borderless" style={{ marginTop: 20 }}>
           <List
             dataSource={session.suggestions}
             renderItem={(item, idx) => (
@@ -300,7 +310,7 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
       {session.highlights && session.highlights.length > 0 && (
         <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
           <Col xs={24} lg={12}>
-            <Card variant="borderless" title={<Space><CheckCircleOutlined style={{ color: "#059669" }} /><span>Positive Highlights</span></Space>}>
+            <Card variant="borderless" title={<Space><CheckCircleOutlined style={{ color: "#059669" }} /><span>{t('detail.positiveHighlights')}</span></Space>}>
               <List
                 dataSource={session.highlights.filter((h) => h.type === "positive")}
                 renderItem={(item) => (
@@ -311,12 +321,12 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
                     </div>
                   </List.Item>
                 )}
-                locale={{ emptyText: "No positive highlights" }}
+                locale={{ emptyText: t('detail.noPositiveHighlights') }}
               />
             </Card>
           </Col>
           <Col xs={24} lg={12}>
-            <Card variant="borderless" title={<Space><CloseCircleOutlined style={{ color: "#EF4444" }} /><span>Areas for Improvement</span></Space>}>
+            <Card variant="borderless" title={<Space><CloseCircleOutlined style={{ color: "#EF4444" }} /><span>{t('detail.areasForImprovement')}</span></Space>}>
               <List
                 dataSource={session.highlights.filter((h) => h.type === "negative")}
                 renderItem={(item) => (
@@ -327,7 +337,7 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
                     </div>
                   </List.Item>
                 )}
-                locale={{ emptyText: "No improvement areas" }}
+                locale={{ emptyText: t('detail.noImprovementAreas') }}
               />
             </Card>
           </Col>
@@ -335,7 +345,7 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
       )}
 
       {session.transcript && session.transcript.length > 0 && (
-        <Card title="Transcript" variant="borderless" style={{ marginTop: 20 }}>
+        <Card title={t('detail.transcript')} variant="borderless" style={{ marginTop: 20 }}>
           <div style={{ maxHeight: 500, overflowY: "auto", padding: "8px 0" }}>
             {session.transcript.map((entry, i) => {
               const showBug = !!session.communication_id && !!entry.transcription_id;
@@ -373,7 +383,7 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
                     }}
                   >
                     <Text strong style={{ fontSize: 11, display: "block", marginBottom: 4, color: entry.role === "agent" ? "#9CA3AF" : "rgba(255,255,255,0.7)" }}>
-                      {entry.role === "agent" ? "AI Agent" : "Customer (User)"}
+                      {entry.role === "agent" ? t('detail.aiAgent') : t('detail.customerUser')}
                     </Text>
                     <Text style={{ color: entry.role === "agent" ? "#374151" : "#fff", fontSize: 13, lineHeight: 1.6 }}>
                       {entry.content}

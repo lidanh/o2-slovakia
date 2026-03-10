@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { Card, Select, Flex, App } from "antd";
+import {useTranslations} from 'next-intl';
 import PageHeader from "@/components/common/PageHeader";
 import SessionTable from "@/components/training/SessionTable";
 import type { SessionWithDetails, SessionStatus, Scenario } from "@repo/shared";
 import { SESSION_STATUS_LABELS } from "@repo/shared";
 
 export default function TrainingPage() {
+  const t = useTranslations('Training');
+  const tCommon = useTranslations('Common');
   const [sessions, setSessions] = useState<SessionWithDetails[]>([]);
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +34,7 @@ export default function TrainingPage() {
       setSessions(Array.isArray(sessionsJson) ? sessionsJson : sessionsJson.data ?? []);
       if (scenariosRes.ok) setScenarios(await scenariosRes.json());
     } catch {
-      message.error("Failed to load training data");
+      message.error(tCommon('messages.failedToLoadTraining'));
     } finally {
       setLoading(false);
     }
@@ -46,7 +49,7 @@ export default function TrainingPage() {
   }
 
   const statusOptions = [
-    { value: "all", label: "All Statuses" },
+    { value: "all", label: tCommon('filters.allStatuses') },
     ...Object.entries(SESSION_STATUS_LABELS).map(([value, label]) => ({
       value,
       label,
@@ -55,7 +58,7 @@ export default function TrainingPage() {
 
   return (
     <>
-      <PageHeader title="Training Sessions" subtitle="View and manage training calls" />
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
       <Card variant="borderless" style={{ marginBottom: 20 }} styles={{ body: { padding: "16px 24px" } }}>
         <Flex gap={12} wrap>
@@ -70,7 +73,7 @@ export default function TrainingPage() {
             onChange={setScenarioFilter}
             style={{ width: 220 }}
             options={[
-              { value: "all", label: "All Scenarios" },
+              { value: "all", label: tCommon('filters.allScenarios') },
               ...scenarios.map((s) => ({ value: s.id, label: s.name })),
             ]}
           />

@@ -2,6 +2,7 @@
 
 import { Card, Table, Button, Space, Tag, Popconfirm, App, Dropdown } from "antd";
 import { PhoneOutlined, DeleteOutlined, PlusOutlined, LinkOutlined, DownOutlined } from "@ant-design/icons";
+import {useTranslations} from 'next-intl';
 import type { ColumnsType } from "antd/es/table";
 import type { AssignmentWithDetails, DifficultyLevel } from "@repo/shared";
 import { ASSIGNMENT_STATUS_LABELS, ASSIGNMENT_STATUS_COLORS } from "@repo/shared";
@@ -21,6 +22,9 @@ export default function AssignedUsersPanel({
   scenarioId,
   onRefresh,
 }: AssignedUsersPanelProps) {
+  const t = useTranslations('Scenarios');
+  const tCommon = useTranslations('Common');
+  const tTraining = useTranslations('Training');
   const { message } = App.useApp();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [selectedLevelId, setSelectedLevelId] = useState<string | null>(null);
@@ -34,10 +38,10 @@ export default function AssignedUsersPanel({
         body: JSON.stringify({ assignmentIds: [assignmentId] }),
       });
       if (!res.ok) throw new Error("Failed to remove assignment");
-      message.success("Assignment removed");
+      message.success(tCommon('messages.assignmentRemoved'));
       onRefresh();
     } catch {
-      message.error("Failed to remove assignment");
+      message.error(tCommon('messages.failedToRemoveAssignment'));
     }
   }
 
@@ -49,9 +53,9 @@ export default function AssignedUsersPanel({
         body: JSON.stringify({ assignmentId }),
       });
       if (!res.ok) throw new Error("Failed to trigger call");
-      message.success("Call initiated");
+      message.success(tCommon('messages.callInitiated'));
     } catch {
-      message.error("Failed to trigger call");
+      message.error(tCommon('messages.failedToTriggerCall'));
     }
   }
 
@@ -66,9 +70,9 @@ export default function AssignedUsersPanel({
       const data = await res.json();
       const fullUrl = `${window.location.origin}${data.callUrl}`;
       await navigator.clipboard.writeText(fullUrl);
-      message.success("Link copied to clipboard!");
+      message.success(tCommon('messages.linkCopied'));
     } catch {
-      message.error("Failed to generate link");
+      message.error(tCommon('messages.failedToGenerateLink'));
     }
   }
 
@@ -82,9 +86,9 @@ export default function AssignedUsersPanel({
       });
       if (!res.ok) throw new Error("Failed to trigger bulk calls");
       const data = await res.json();
-      message.success(`${data.initiated ?? 0} calls initiated`);
+      message.success(tCommon('messages.bulkCallsInitiated', { count: data.initiated ?? 0 }));
     } catch {
-      message.error("Failed to trigger bulk calls");
+      message.error(tCommon('messages.failedToTriggerBulkCalls'));
     } finally {
       setBulkLoading(null);
     }
@@ -92,18 +96,18 @@ export default function AssignedUsersPanel({
 
   const columns: ColumnsType<AssignmentWithDetails> = [
     {
-      title: "User",
+      title: tCommon('fields.user'),
       key: "user",
       render: (_, r) => r.user.name,
       sorter: (a, b) => a.user.name.localeCompare(b.user.name),
     },
     {
-      title: "Email",
+      title: tCommon('fields.email'),
       key: "email",
       render: (_, r) => r.user.email,
     },
     {
-      title: "Status",
+      title: tCommon('fields.status'),
       dataIndex: "status",
       key: "status",
       render: (status: AssignmentWithDetails["status"]) => (
@@ -113,7 +117,7 @@ export default function AssignedUsersPanel({
       ),
     },
     {
-      title: "Actions",
+      title: tCommon('fields.actions'),
       key: "actions",
       render: (_, r) => (
         <Space>
@@ -122,13 +126,13 @@ export default function AssignedUsersPanel({
               items: [
                 {
                   key: "phone",
-                  label: "Phone Call",
+                  label: tCommon('callTypes.phoneCall'),
                   icon: <PhoneOutlined />,
                   onClick: () => handleTriggerCall(r.id),
                 },
                 {
                   key: "browser",
-                  label: "Share a Link",
+                  label: tCommon('callTypes.shareLink'),
                   icon: <LinkOutlined />,
                   onClick: () => handleShareLink(r.id),
                 },
@@ -142,12 +146,12 @@ export default function AssignedUsersPanel({
               icon={<PhoneOutlined />}
               disabled={r.status === "completed"}
             >
-              Train <DownOutlined style={{ fontSize: 10 }} />
+              {tTraining('train')} <DownOutlined style={{ fontSize: 10 }} />
             </Button>
           </Dropdown>
-          <Popconfirm title="Remove assignment?" onConfirm={() => handleRemoveAssignment(r.id)}>
+          <Popconfirm title={t('confirmRemoveAssignment')} onConfirm={() => handleRemoveAssignment(r.id)}>
             <Button type="link" danger icon={<DeleteOutlined />}>
-              Remove
+              {t('removeAssignment')}
             </Button>
           </Popconfirm>
         </Space>
@@ -176,7 +180,7 @@ export default function AssignedUsersPanel({
                   loading={bulkLoading === level.id}
                   disabled={levelAssignments.length === 0}
                 >
-                  Call All
+                  {tCommon('buttons.callAll')}
                 </Button>
                 <Button
                   type="primary"
@@ -186,7 +190,7 @@ export default function AssignedUsersPanel({
                     setAddDialogOpen(true);
                   }}
                 >
-                  Add Users
+                  {tCommon('buttons.addUsers')}
                 </Button>
               </Space>
             }

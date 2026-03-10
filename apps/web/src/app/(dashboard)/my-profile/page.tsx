@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, Form, Input, Button, Typography, App, Spin, Divider, Row, Col, Tag } from "antd";
 import { SaveOutlined, LockOutlined } from "@ant-design/icons";
+import {useTranslations} from 'next-intl';
 import PageHeader from "@/components/common/PageHeader";
 import PhoneInput from "@/components/common/PhoneInput";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +12,8 @@ import { createClient } from "@/lib/supabase/client";
 const { Text } = Typography;
 
 export default function MyProfilePage() {
+  const t = useTranslations('Profile');
+  const tCommon = useTranslations('Common');
   const { message } = App.useApp();
   const { user, refresh } = useAuth();
   const [profileForm] = Form.useForm();
@@ -46,10 +49,10 @@ export default function MyProfilePage() {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error ?? "Failed to update profile");
       }
-      message.success("Profile updated");
+      message.success(tCommon('messages.profileUpdated'));
       await refresh();
     } catch (err) {
-      message.error(err instanceof Error ? err.message : "Failed to update profile");
+      message.error(err instanceof Error ? err.message : tCommon('messages.failedToUpdateProfile'));
     } finally {
       setSaving(false);
     }
@@ -61,10 +64,10 @@ export default function MyProfilePage() {
       const supabase = createClient();
       const { error } = await supabase.auth.updateUser({ password: values.password });
       if (error) throw error;
-      message.success("Password changed successfully");
+      message.success(tCommon('messages.passwordChanged'));
       passwordForm.resetFields();
     } catch (err) {
-      message.error(err instanceof Error ? err.message : "Failed to change password");
+      message.error(err instanceof Error ? err.message : tCommon('messages.failedToChangePassword'));
     } finally {
       setChangingPassword(false);
     }
@@ -80,37 +83,37 @@ export default function MyProfilePage() {
 
   return (
     <>
-      <PageHeader title="My Profile" subtitle="Manage your account settings" />
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
       <Row gutter={[24, 24]}>
         <Col xs={24} lg={14}>
-          <Card title="Profile Information" variant="borderless">
+          <Card title={t('profileInformation')} variant="borderless">
             <Form
               form={profileForm}
               layout="vertical"
               onFinish={handleSaveProfile}
             >
               <Form.Item
-                label="Name"
+                label={t('name')}
                 name="name"
-                rules={[{ required: true, message: "Name is required" }]}
+                rules={[{ required: true, message: t('nameRequired') }]}
               >
                 <Input />
               </Form.Item>
 
-              <Form.Item label="Phone" name="phone">
+              <Form.Item label={t('phone')} name="phone">
                 <PhoneInput />
               </Form.Item>
 
-              <Form.Item label="Email">
+              <Form.Item label={t('email')}>
                 <Input value={user.email} disabled />
               </Form.Item>
 
-              <Form.Item label="Team">
-                <Input value={teamName ?? "No team"} disabled />
+              <Form.Item label={t('team')}>
+                <Input value={teamName ?? t('noTeam')} disabled />
               </Form.Item>
 
-              <Form.Item label="Role">
+              <Form.Item label={t('role')}>
                 <div>
                   <Tag color="blue">{roleLabels[user.role] ?? user.role}</Tag>
                 </div>
@@ -123,7 +126,7 @@ export default function MyProfilePage() {
                   icon={<SaveOutlined />}
                   loading={saving}
                 >
-                  Save Changes
+                  {t('saveChanges')}
                 </Button>
               </Form.Item>
             </Form>
@@ -131,9 +134,9 @@ export default function MyProfilePage() {
         </Col>
 
         <Col xs={24} lg={10}>
-          <Card title="Change Password" variant="borderless">
+          <Card title={t('changePassword')} variant="borderless">
             <Text type="secondary" style={{ display: "block", marginBottom: 16 }}>
-              Set a new password for your account.
+              {t('changePasswordDescription')}
             </Text>
             <Form
               form={passwordForm}
@@ -141,28 +144,28 @@ export default function MyProfilePage() {
               onFinish={handleChangePassword}
             >
               <Form.Item
-                label="New Password"
+                label={t('newPassword')}
                 name="password"
                 rules={[
-                  { required: true, message: "Password is required" },
-                  { min: 8, message: "Password must be at least 8 characters" },
+                  { required: true, message: t('passwordRequired') },
+                  { min: 8, message: t('passwordMinLength') },
                 ]}
               >
                 <Input.Password prefix={<LockOutlined />} />
               </Form.Item>
 
               <Form.Item
-                label="Confirm Password"
+                label={t('confirmPassword')}
                 name="confirm"
                 dependencies={["password"]}
                 rules={[
-                  { required: true, message: "Please confirm your password" },
+                  { required: true, message: t('confirmPasswordRequired') },
                   ({ getFieldValue }) => ({
                     validator(_, value) {
                       if (!value || getFieldValue("password") === value) {
                         return Promise.resolve();
                       }
-                      return Promise.reject(new Error("Passwords do not match"));
+                      return Promise.reject(new Error(t('passwordsDoNotMatch')));
                     },
                   }),
                 ]}
@@ -177,7 +180,7 @@ export default function MyProfilePage() {
                   icon={<LockOutlined />}
                   loading={changingPassword}
                 >
-                  Change Password
+                  {t('changePassword')}
                 </Button>
               </Form.Item>
             </Form>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Modal, Form, Button, App } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
+import { useTranslations } from "next-intl";
 import PageHeader from "@/components/common/PageHeader";
 import TeamTable from "@/components/teams/TeamTable";
 import TeamForm from "@/components/teams/TeamForm";
@@ -21,6 +22,8 @@ interface TeamRow {
 }
 
 export default function TeamsPage() {
+  const t = useTranslations('Teams');
+  const tCommon = useTranslations('Common');
   const [teams, setTeams] = useState<TeamRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -42,7 +45,7 @@ export default function TeamsPage() {
       const data = await res.json();
       setTeams(data);
     } catch {
-      message.error("Failed to load teams");
+      message.error(tCommon('messages.failedToLoadTeams'));
     } finally {
       setLoading(false);
     }
@@ -57,12 +60,12 @@ export default function TeamsPage() {
         body: JSON.stringify(values),
       });
       if (!res.ok) throw new Error("Failed to create team");
-      message.success("Team created");
+      message.success(tCommon('messages.teamCreated'));
       setModalOpen(false);
       form.resetFields();
       fetchTeams();
     } catch {
-      message.error("Failed to create team");
+      message.error(tCommon('messages.failedToCreateTeam'));
     } finally {
       setSubmitting(false);
     }
@@ -78,12 +81,12 @@ export default function TeamsPage() {
         body: JSON.stringify(values),
       });
       if (!res.ok) throw new Error("Failed to update team");
-      message.success("Team updated");
+      message.success(tCommon('messages.teamUpdated'));
       setEditingTeam(null);
       form.resetFields();
       fetchTeams();
     } catch {
-      message.error("Failed to update team");
+      message.error(tCommon('messages.failedToUpdateTeam'));
     } finally {
       setSubmitting(false);
     }
@@ -92,15 +95,15 @@ export default function TeamsPage() {
   return (
     <>
       <PageHeader
-        title="Teams"
-        subtitle="Manage training teams"
+        title={t('title')}
+        subtitle={t('subtitle')}
         extra={
           <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => setModalOpen(true)}
           >
-            New Team
+            {tCommon('buttons.newTeam')}
           </Button>
         }
       />
@@ -117,7 +120,7 @@ export default function TeamsPage() {
       />
 
       <Modal
-        title="Create Team"
+        title={t('createTeam')}
         open={modalOpen}
         onCancel={() => {
           setModalOpen(false);
@@ -126,7 +129,7 @@ export default function TeamsPage() {
         onOk={() => form.submit()}
         confirmLoading={submitting}
         width={640}
-        okText="Create Team"
+        okText={tCommon('buttons.createTeam')}
         destroyOnHidden
         okButtonProps={{ disabled: !formValid }}
       >
@@ -140,7 +143,7 @@ export default function TeamsPage() {
       </Modal>
 
       <Modal
-        title="Edit Team"
+        title={t('editTeam')}
         open={!!editingTeam}
         onCancel={() => {
           setEditingTeam(null);
@@ -149,7 +152,7 @@ export default function TeamsPage() {
         onOk={() => form.submit()}
         confirmLoading={submitting}
         width={640}
-        okText="Save Changes"
+        okText={tCommon('buttons.saveChanges')}
         destroyOnHidden
         okButtonProps={{ disabled: !formValid }}
       >

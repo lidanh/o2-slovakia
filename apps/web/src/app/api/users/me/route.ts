@@ -8,6 +8,7 @@ const UpdateProfileSchema = z.object({
   phone: z.string().optional(),
   password: z.string().min(8).optional(),
   status: z.enum(["active"]).optional(),
+  language: z.enum(["en", "sk", "hu"]).optional(),
 });
 
 export async function GET() {

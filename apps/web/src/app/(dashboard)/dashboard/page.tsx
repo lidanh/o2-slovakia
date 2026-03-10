@@ -21,7 +21,8 @@ import {
 import PageHeader from "@/components/common/PageHeader";
 import ScoreDisplay from "@/components/common/ScoreDisplay";
 import type { AnalyticsKPIs, SessionWithDetails } from "@repo/shared";
-import { SESSION_STATUS_LABELS, SESSION_STATUS_COLORS } from "@repo/shared";
+import { SESSION_STATUS_COLORS } from "@repo/shared";
+import {useTranslations} from 'next-intl';
 
 const { Text } = Typography;
 
@@ -30,40 +31,42 @@ interface ScoreTrend {
   avg_score: number;
 }
 
-const kpiConfig = [
-  {
-    title: "Total Sessions",
-    icon: <PhoneOutlined style={{ fontSize: 20 }} />,
-    gradient: "linear-gradient(135deg, #0112AA 0%, #2563EB 100%)",
-    bgGradient: "linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%)",
-    iconBg: "rgba(1, 18, 170, 0.1)",
-  },
-  {
-    title: "Active Users",
-    icon: <UserOutlined style={{ fontSize: 20 }} />,
-    gradient: "linear-gradient(135deg, #2563EB 0%, #60A5FA 100%)",
-    bgGradient: "linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)",
-    iconBg: "rgba(37, 99, 235, 0.1)",
-  },
-  {
-    title: "Active Scenarios",
-    icon: <FileTextOutlined style={{ fontSize: 20 }} />,
-    gradient: "linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%)",
-    bgGradient: "linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)",
-    iconBg: "rgba(124, 58, 237, 0.1)",
-  },
-  {
-    title: "Avg. Score",
-    icon: <TrophyOutlined style={{ fontSize: 20 }} />,
-    gradient: "linear-gradient(135deg, #059669 0%, #34D399 100%)",
-    bgGradient: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)",
-    iconBg: "rgba(5, 150, 105, 0.1)",
-  },
-];
-
 export default function DashboardPage() {
   const router = useRouter();
   const { message } = App.useApp();
+  const t = useTranslations('Dashboard');
+  const tCommon = useTranslations('Common');
+
+  const kpiConfig = [
+    {
+      title: t('totalSessions'),
+      icon: <PhoneOutlined style={{ fontSize: 20 }} />,
+      gradient: "linear-gradient(135deg, #0112AA 0%, #2563EB 100%)",
+      bgGradient: "linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%)",
+      iconBg: "rgba(1, 18, 170, 0.1)",
+    },
+    {
+      title: t('activeUsers'),
+      icon: <UserOutlined style={{ fontSize: 20 }} />,
+      gradient: "linear-gradient(135deg, #2563EB 0%, #60A5FA 100%)",
+      bgGradient: "linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)",
+      iconBg: "rgba(37, 99, 235, 0.1)",
+    },
+    {
+      title: t('activeScenarios'),
+      icon: <FileTextOutlined style={{ fontSize: 20 }} />,
+      gradient: "linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%)",
+      bgGradient: "linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)",
+      iconBg: "rgba(124, 58, 237, 0.1)",
+    },
+    {
+      title: t('avgScore'),
+      icon: <TrophyOutlined style={{ fontSize: 20 }} />,
+      gradient: "linear-gradient(135deg, #059669 0%, #34D399 100%)",
+      bgGradient: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)",
+      iconBg: "rgba(5, 150, 105, 0.1)",
+    },
+  ];
   const [kpis, setKpis] = useState<AnalyticsKPIs | null>(null);
   const [recentSessions, setRecentSessions] = useState<SessionWithDetails[]>([]);
   const [scoreTrend, setScoreTrend] = useState<ScoreTrend[]>([]);
@@ -86,7 +89,7 @@ export default function DashboardPage() {
         }
         if (trendRes.ok) setScoreTrend(await trendRes.json());
       } catch {
-        message.error("Failed to load dashboard data");
+        message.error(t('failedToLoadDashboard'));
       } finally {
         setLoading(false);
       }
@@ -103,7 +106,7 @@ export default function DashboardPage() {
 
   return (
     <>
-      <PageHeader title="Dashboard" subtitle="Overview of your voice training platform" />
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
       <Row gutter={[20, 20]} className="animate-stagger">
         {kpiConfig.map((kpi, idx) => (
@@ -169,7 +172,7 @@ export default function DashboardPage() {
       <Row gutter={[20, 20]} style={{ marginTop: 24 }} className="animate-stagger">
         <Col xs={24} lg={16}>
           <Card
-            title="Training Activity"
+            title={t('trainingActivity')}
             loading={loading}
             variant="borderless"
             styles={{ body: { padding: "16px 24px 24px" } }}
@@ -210,7 +213,7 @@ export default function DashboardPage() {
                     stroke="#0112AA"
                     strokeWidth={2.5}
                     fill="url(#scoreGradient)"
-                    name="Avg Score"
+                    name={t('avgScore')}
                     dot={{ r: 4, fill: "#0112AA", strokeWidth: 0 }}
                     activeDot={{ r: 6, fill: "#0112AA", stroke: "#fff", strokeWidth: 2 }}
                   />
@@ -220,7 +223,7 @@ export default function DashboardPage() {
               <div className="empty-state" style={{ height: 320 }}>
                 <PhoneOutlined className="empty-state-icon" />
                 <Text style={{ color: "#9CA3AF" }}>
-                  Chart data will appear once training sessions are recorded
+                  {t('chartEmptyState')}
                 </Text>
               </div>
             )}
@@ -228,11 +231,11 @@ export default function DashboardPage() {
         </Col>
         <Col xs={24} lg={8}>
           <Card
-            title="Recent Sessions"
+            title={t('recentSessions')}
             variant="borderless"
             extra={
               <Button type="link" size="small" onClick={() => router.push("/training")} style={{ fontSize: 13 }}>
-                View all
+                {tCommon('buttons.viewAll')}
               </Button>
             }
           >
@@ -270,18 +273,30 @@ export default function DashboardPage() {
                     dataIndex: "status",
                     key: "status",
                     width: 90,
-                    render: (s: SessionWithDetails["status"]) => (
-                      <Tag color={SESSION_STATUS_COLORS[s]} style={{ fontSize: 11 }}>
-                        {SESSION_STATUS_LABELS[s]}
-                      </Tag>
-                    ),
+                    render: (s: SessionWithDetails["status"]) => {
+                      const statusKeyMap: Record<string, string> = {
+                        initiated: 'initiated',
+                        ringing: 'ringing',
+                        in_progress: 'inProgress',
+                        completed: 'completed',
+                        failed: 'failed',
+                        no_answer: 'noAnswer',
+                        busy: 'busy',
+                        canceled: 'canceled',
+                      };
+                      return (
+                        <Tag color={SESSION_STATUS_COLORS[s]} style={{ fontSize: 11 }}>
+                          {tCommon(`status.${statusKeyMap[s] ?? s}` as any)}
+                        </Tag>
+                      );
+                    },
                   },
                 ]}
               />
             ) : (
               <div className="empty-state">
                 <PhoneOutlined className="empty-state-icon" />
-                <Text style={{ color: "#9CA3AF" }}>No sessions yet</Text>
+                <Text style={{ color: "#9CA3AF" }}>{t('noSessionsYet')}</Text>
               </div>
             )}
           </Card>

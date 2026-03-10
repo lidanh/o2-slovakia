@@ -3,6 +3,7 @@
 import { Button, Dropdown, App } from "antd";
 import { PhoneOutlined, LinkOutlined, DownOutlined } from "@ant-design/icons";
 import { useState } from "react";
+import {useTranslations} from 'next-intl';
 
 interface CallTriggerButtonProps {
   assignmentId: string;
@@ -18,6 +19,7 @@ export default function CallTriggerButton({
   selfService,
   onSuccess,
 }: CallTriggerButtonProps) {
+  const t = useTranslations('Training');
   const [loading, setLoading] = useState(false);
   const { message } = App.useApp();
 
@@ -30,10 +32,10 @@ export default function CallTriggerButton({
         body: JSON.stringify({ assignmentId }),
       });
       if (!res.ok) throw new Error("Failed to trigger call");
-      message.success("Call initiated successfully");
+      message.success(t('callTrigger.callInitiated'));
       onSuccess?.();
     } catch {
-      message.error("Failed to trigger call");
+      message.error(t('callTrigger.failedToTriggerCall'));
     } finally {
       setLoading(false);
     }
@@ -54,11 +56,11 @@ export default function CallTriggerButton({
       } else {
         const fullUrl = `${window.location.origin}${data.callUrl}`;
         await navigator.clipboard.writeText(fullUrl);
-        message.success("Link copied to clipboard!");
+        message.success(t('callTrigger.linkCopied'));
       }
       onSuccess?.();
     } catch {
-      message.error("Failed to generate link");
+      message.error(t('callTrigger.failedToGenerateLink'));
     } finally {
       setLoading(false);
     }
@@ -70,13 +72,13 @@ export default function CallTriggerButton({
         items: [
           {
             key: "phone",
-            label: "Phone Call",
+            label: t('callTrigger.phoneCall'),
             icon: <PhoneOutlined />,
             onClick: handlePhoneCall,
           },
           {
             key: "browser",
-            label: selfService ? "Browser Call" : "Share a Link",
+            label: selfService ? t('callTrigger.browserCall') : t('callTrigger.shareLink'),
             icon: <LinkOutlined />,
             onClick: handleBrowserCall,
           },
@@ -90,7 +92,7 @@ export default function CallTriggerButton({
         loading={loading}
         disabled={disabled}
       >
-        Start Training <DownOutlined />
+        {t('callTrigger.startTraining')} <DownOutlined />
       </Button>
     </Dropdown>
   );

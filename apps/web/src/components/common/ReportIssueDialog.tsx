@@ -2,6 +2,7 @@
 
 import { Modal, Input, App, Typography } from "antd";
 import { useState } from "react";
+import {useTranslations} from 'next-intl';
 
 const { Text } = Typography;
 
@@ -25,12 +26,13 @@ export default function ReportIssueDialog({
   transcriptionId,
   category,
   transcriptContent,
-  title = "Report Issue",
+  title: titleProp,
   sessionId,
   scenarioName,
   difficultyName,
 }: ReportIssueDialogProps) {
   const { message } = App.useApp();
+  const t = useTranslations('ReportIssue');
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -52,11 +54,11 @@ export default function ReportIssueDialog({
         }),
       });
       if (!res.ok) throw new Error("Failed to create issue");
-      message.success("Issue reported successfully");
+      message.success(t('issueReported'));
       setDescription("");
       onClose();
     } catch {
-      message.error("Failed to report issue. Please try again.");
+      message.error(t('failedToReport'));
     } finally {
       setSubmitting(false);
     }
@@ -69,13 +71,13 @@ export default function ReportIssueDialog({
 
   return (
     <Modal
-      title={title}
+      title={titleProp ?? t('title')}
       open={open}
       onCancel={handleCancel}
       onOk={handleOk}
       confirmLoading={submitting}
       okButtonProps={{ disabled: !description.trim() }}
-      okText="Submit"
+      okText={t('submit')}
     >
       {transcriptContent && (
         <div
@@ -88,7 +90,7 @@ export default function ReportIssueDialog({
             overflowY: "auto",
           }}
         >
-          <Text style={{ fontSize: 12, color: "#6B7280" }}>Transcript context:</Text>
+          <Text style={{ fontSize: 12, color: "#6B7280" }}>{t('transcriptContext')}</Text>
           <Text style={{ fontSize: 13, display: "block", marginTop: 4 }}>
             {transcriptContent}
           </Text>
@@ -96,7 +98,7 @@ export default function ReportIssueDialog({
       )}
       <Input.TextArea
         rows={4}
-        placeholder="Describe the issue..."
+        placeholder={t('descriptionPlaceholder')}
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         style={{ fontSize: 15 }}

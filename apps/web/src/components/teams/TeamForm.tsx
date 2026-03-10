@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { Form, Input, Button } from "antd";
+import { useTranslations } from "next-intl";
 import type { CreateTeamPayload } from "@repo/shared";
 import type { FormInstance } from "antd";
 
@@ -17,6 +18,8 @@ interface TeamFormProps {
 }
 
 export default function TeamForm({ onSubmit, loading, initialValues, form: externalForm, hideSubmitButton, onValidityChange }: TeamFormProps) {
+  const t = useTranslations('Teams');
+  const tCommon = useTranslations('Common');
   const [internalForm] = Form.useForm();
   const form = externalForm || internalForm;
   const allValues = Form.useWatch([], form);
@@ -41,18 +44,18 @@ export default function TeamForm({ onSubmit, loading, initialValues, form: exter
       onFinish={handleFinish}
       initialValues={initialValues}
     >
-      <Form.Item name="name" label="Name" rules={[{ required: true, message: "Name is required" }]}>
-        <Input placeholder="Team name" />
+      <Form.Item name="name" label={t('form.name')} rules={[{ required: true, message: t('form.nameRequired') }]}>
+        <Input placeholder={t('form.namePlaceholder')} />
       </Form.Item>
 
-      <Form.Item name="description" label="Description">
-        <TextArea rows={3} placeholder="Team description" />
+      <Form.Item name="description" label={t('form.description')}>
+        <TextArea rows={3} placeholder={t('form.descriptionPlaceholder')} />
       </Form.Item>
 
       {!hideSubmitButton && (
         <Form.Item>
           <Button type="primary" htmlType="submit" loading={loading}>
-            Save Team
+            {tCommon('buttons.saveTeam')}
           </Button>
         </Form.Item>
       )}

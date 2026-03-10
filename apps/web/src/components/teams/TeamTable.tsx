@@ -3,6 +3,7 @@
 import { Table, Button } from "antd";
 import { useRouter } from "next/navigation";
 import { EditOutlined } from "@ant-design/icons";
+import { useTranslations } from "next-intl";
 import type { ColumnsType } from "antd/es/table";
 import type { Team } from "@repo/shared";
 
@@ -19,24 +20,25 @@ interface TeamTableProps {
 }
 
 export default function TeamTable({ data, loading, onEdit }: TeamTableProps) {
+  const t = useTranslations('Teams');
   const router = useRouter();
 
   const columns: ColumnsType<TeamRow> = [
     {
-      title: "Name",
+      title: t('table.name'),
       dataIndex: "name",
       key: "name",
       sorter: (a, b) => a.name.localeCompare(b.name),
     },
     {
-      title: "Members",
+      title: t('table.members'),
       dataIndex: "member_count",
       key: "member_count",
       render: (count: number | undefined) => count ?? 0,
       sorter: (a, b) => (a.member_count ?? 0) - (b.member_count ?? 0),
     },
     {
-      title: "Avg Score",
+      title: t('table.avgScore'),
       dataIndex: "avg_score",
       key: "avg_score",
       defaultSortOrder: "descend" as const,
@@ -45,7 +47,7 @@ export default function TeamTable({ data, loading, onEdit }: TeamTableProps) {
       sorter: (a, b) => (a.avg_score ?? -1) - (b.avg_score ?? -1),
     },
     {
-      title: "Sessions",
+      title: t('table.sessions'),
       dataIndex: "total_sessions",
       key: "total_sessions",
       render: (count: number | undefined) => count ?? 0,

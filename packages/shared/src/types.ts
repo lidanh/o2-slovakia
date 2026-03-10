@@ -26,6 +26,7 @@ export interface User {
   invited_by: string | null;
   created_at: string;
   updated_at: string;
+  language: string;
 }
 
 export interface Scenario {

@@ -2,6 +2,7 @@
 
 import { Modal, Select, Form, App, Spin } from "antd";
 import { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import type { ScenarioWithLevels } from "@repo/shared";
 
 interface AssignScenarioModalProps {
@@ -17,6 +18,8 @@ export default function AssignScenarioModal({
   onClose,
   onSuccess,
 }: AssignScenarioModalProps) {
+  const t = useTranslations('Users');
+  const tCommon = useTranslations('Common');
   const [form] = Form.useForm();
   const { message } = App.useApp();
   const [scenarios, setScenarios] = useState<ScenarioWithLevels[]>([]);
@@ -48,7 +51,7 @@ export default function AssignScenarioModal({
             Array.isArray(data) ? data.filter((s: ScenarioWithLevels) => s.is_active !== false) : []
           )
         )
-        .catch(() => message.error("Failed to load scenarios"))
+        .catch(() => message.error(tCommon('messages.failedToLoadScenarios')))
         .finally(() => setLoading(false));
     }
   }, [open, form]);
@@ -67,10 +70,10 @@ export default function AssignScenarioModal({
         }),
       });
       if (!res.ok) throw new Error("Failed to create assignment");
-      message.success("Scenario assigned");
+      message.success(tCommon('messages.scenarioAssigned'));
       onSuccess();
     } catch {
-      message.error("Failed to assign scenario");
+      message.error(tCommon('messages.failedToAssignScenario'));
     } finally {
       setSubmitting(false);
     }
@@ -78,7 +81,7 @@ export default function AssignScenarioModal({
 
   return (
     <Modal
-      title="Assign Scenario"
+      title={t('assignModal.title')}
       open={open}
       onCancel={onClose}
       onOk={handleOk}
@@ -93,11 +96,11 @@ export default function AssignScenarioModal({
         <Form form={form} layout="vertical">
           <Form.Item
             name="scenarioId"
-            label="Scenario"
-            rules={[{ required: true, message: "Select a scenario" }]}
+            label={t('assignModal.scenario')}
+            rules={[{ required: true, message: t('assignModal.scenarioRequired') }]}
           >
             <Select
-              placeholder="Select scenario"
+              placeholder={t('assignModal.scenarioPlaceholder')}
               options={scenarios.map((s) => ({ value: s.id, label: s.name }))}
               onChange={() => form.setFieldValue("difficultyLevelId", undefined)}
             />
@@ -105,11 +108,11 @@ export default function AssignScenarioModal({
 
           <Form.Item
             name="difficultyLevelId"
-            label="Difficulty Level"
-            rules={[{ required: true, message: "Select a difficulty level" }]}
+            label={t('assignModal.difficultyLevel')}
+            rules={[{ required: true, message: t('assignModal.difficultyRequired') }]}
           >
             <Select
-              placeholder="Select difficulty"
+              placeholder={t('assignModal.difficultyPlaceholder')}
               disabled={!selectedScenarioId}
               options={
                 selectedScenario?.difficulty_levels

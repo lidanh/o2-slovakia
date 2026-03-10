@@ -8,6 +8,7 @@ import {
   CheckCircleOutlined,
 } from "@ant-design/icons";
 import type { AnalyticsKPIs } from "@repo/shared";
+import {useTranslations} from 'next-intl';
 
 const { Text } = Typography;
 
@@ -16,34 +17,35 @@ interface KPICardsProps {
   loading: boolean;
 }
 
-const kpiConfig = [
-  {
-    title: "Total Sessions",
-    icon: <PhoneOutlined style={{ fontSize: 20 }} />,
-    gradient: "linear-gradient(135deg, #0112AA 0%, #2563EB 100%)",
-    bgGradient: "linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%)",
-  },
-  {
-    title: "Avg Score",
-    icon: <TrophyOutlined style={{ fontSize: 20 }} />,
-    gradient: "linear-gradient(135deg, #059669 0%, #34D399 100%)",
-    bgGradient: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)",
-  },
-  {
-    title: "Avg Duration",
-    icon: <ClockCircleOutlined style={{ fontSize: 20 }} />,
-    gradient: "linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%)",
-    bgGradient: "linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)",
-  },
-  {
-    title: "Completion Rate",
-    icon: <CheckCircleOutlined style={{ fontSize: 20 }} />,
-    gradient: "linear-gradient(135deg, #2563EB 0%, #60A5FA 100%)",
-    bgGradient: "linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)",
-  },
-];
-
 export default function KPICards({ data, loading }: KPICardsProps) {
+  const t = useTranslations('Analytics');
+
+  const kpiConfig = [
+    {
+      title: t('totalSessions'),
+      icon: <PhoneOutlined style={{ fontSize: 20 }} />,
+      gradient: "linear-gradient(135deg, #0112AA 0%, #2563EB 100%)",
+      bgGradient: "linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%)",
+    },
+    {
+      title: t('avgScore'),
+      icon: <TrophyOutlined style={{ fontSize: 20 }} />,
+      gradient: "linear-gradient(135deg, #059669 0%, #34D399 100%)",
+      bgGradient: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)",
+    },
+    {
+      title: t('avgDuration'),
+      icon: <ClockCircleOutlined style={{ fontSize: 20 }} />,
+      gradient: "linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%)",
+      bgGradient: "linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)",
+    },
+    {
+      title: t('completionRate'),
+      icon: <CheckCircleOutlined style={{ fontSize: 20 }} />,
+      gradient: "linear-gradient(135deg, #2563EB 0%, #60A5FA 100%)",
+      bgGradient: "linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)",
+    },
+  ];
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.round(seconds % 60);

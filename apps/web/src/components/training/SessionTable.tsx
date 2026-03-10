@@ -2,6 +2,7 @@
 
 import { Table, Tag } from "antd";
 import { useRouter } from "next/navigation";
+import {useTranslations} from 'next-intl';
 import type { ColumnsType } from "antd/es/table";
 import type { SessionWithDetails, SessionStatus } from "@repo/shared";
 import { SESSION_STATUS_LABELS, SESSION_STATUS_COLORS } from "@repo/shared";
@@ -14,27 +15,28 @@ interface SessionTableProps {
 }
 
 export default function SessionTable({ data, loading }: SessionTableProps) {
+  const t = useTranslations('Training');
   const router = useRouter();
 
   const columns: ColumnsType<SessionWithDetails> = [
     {
-      title: "User",
+      title: t('table.user'),
       key: "user",
       render: (_, r) => r.user?.name ?? "—",
       sorter: (a, b) => (a.user?.name ?? "").localeCompare(b.user?.name ?? ""),
     },
     {
-      title: "Scenario",
+      title: t('table.scenario'),
       key: "scenario",
       render: (_, r) => r.scenario?.name ?? "—",
     },
     {
-      title: "Difficulty",
+      title: t('table.difficulty'),
       key: "difficulty",
       render: (_, r) => r.difficulty_level?.name ?? "—",
     },
     {
-      title: "Status",
+      title: t('table.status'),
       dataIndex: "status",
       key: "status",
       render: (status: SessionStatus) => (
@@ -44,20 +46,20 @@ export default function SessionTable({ data, loading }: SessionTableProps) {
       ),
     },
     {
-      title: "Score",
+      title: t('table.score'),
       dataIndex: "score",
       key: "score",
       render: (score: number | null) => <ScoreDisplay score={score} size="small" />,
       sorter: (a, b) => (a.score ?? 0) - (b.score ?? 0),
     },
     {
-      title: "Rating",
+      title: t('table.rating'),
       dataIndex: "star_rating",
       key: "star_rating",
       render: (rating: number | null) => <StarRating rating={rating} />,
     },
     {
-      title: "Duration",
+      title: t('table.duration'),
       dataIndex: "call_duration",
       key: "call_duration",
       render: (d: number | null) => {
@@ -68,7 +70,7 @@ export default function SessionTable({ data, loading }: SessionTableProps) {
       },
     },
     {
-      title: "Date",
+      title: t('table.date'),
       dataIndex: "created_at",
       key: "created_at",
       render: (date: string) => new Date(date).toLocaleDateString("sk-SK"),

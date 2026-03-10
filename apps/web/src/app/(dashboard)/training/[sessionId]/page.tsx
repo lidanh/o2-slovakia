@@ -3,11 +3,14 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { Spin, App } from "antd";
+import {useTranslations} from 'next-intl';
 import PageHeader from "@/components/common/PageHeader";
 import SessionDetail from "@/components/training/SessionDetail";
 import type { SessionWithDetails } from "@repo/shared";
 
 export default function TrainingSessionDetailPage() {
+  const t = useTranslations('Training');
+  const tCommon = useTranslations('Common');
   const params = useParams();
   const sessionId = params.sessionId as string;
 
@@ -22,7 +25,7 @@ export default function TrainingSessionDetailPage() {
         if (!res.ok) throw new Error("Failed to fetch session");
         setSession(await res.json());
       } catch {
-        message.error("Failed to load session");
+        message.error(tCommon('messages.failedToLoadSession'));
       } finally {
         setLoading(false);
       }
@@ -38,13 +41,13 @@ export default function TrainingSessionDetailPage() {
     );
   }
 
-  if (!session) return <div>Session not found</div>;
+  if (!session) return <div>{t('sessionNotFound')}</div>;
 
   return (
     <>
       <PageHeader
-        title={`Session: ${session.scenario?.name ?? "Unknown"}`}
-        subtitle={`${session.user?.name ?? "Unknown"} - ${new Date(session.created_at).toLocaleString("sk-SK")}`}
+        title={t('sessionTitle', { scenarioName: session.scenario?.name ?? "Unknown" })}
+        subtitle={t('sessionSubtitle', { userName: session.user?.name ?? "Unknown", date: new Date(session.created_at).toLocaleString("sk-SK") })}
         backHref="/training"
       />
       <SessionDetail session={session} onSessionUpdate={setSession} />

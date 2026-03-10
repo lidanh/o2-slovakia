@@ -9,6 +9,8 @@ import type { MenuProps } from "antd";
 import { useAuth } from "@/contexts/AuthContext";
 import type { UserRole } from "@repo/shared";
 import ReportIssueDialog from "@/components/common/ReportIssueDialog";
+import LanguageSwitcher from "@/components/common/LanguageSwitcher";
+import {useTranslations} from 'next-intl';
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -19,17 +21,18 @@ const roleColors: Record<UserRole, string> = {
   user: "#059669",
 };
 
-const roleLabels: Record<UserRole, string> = {
-  admin: "Admin",
-  team_manager: "Manager",
-  user: "User",
-};
-
 export default function AppHeader() {
   const router = useRouter();
   const supabase = createClient();
   const { user } = useAuth();
   const [issueDialogOpen, setIssueDialogOpen] = useState(false);
+  const t = useTranslations();
+
+  const roleLabels: Record<UserRole, string> = {
+    admin: t('Common.roles.admin'),
+    team_manager: t('Common.roles.manager'),
+    user: t('Common.roles.user'),
+  };
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -41,13 +44,13 @@ export default function AppHeader() {
     {
       key: "profile",
       icon: <IdcardOutlined />,
-      label: "My Profile",
+      label: t('Profile.title'),
       onClick: () => router.push("/my-profile"),
     },
     {
       key: "logout",
       icon: <LogoutOutlined />,
-      label: "Sign Out",
+      label: t('Profile.signOut'),
       onClick: handleLogout,
     },
   ];
@@ -73,6 +76,7 @@ export default function AppHeader() {
     >
       <div />
       <Flex align="center" gap={8}>
+        <LanguageSwitcher />
         <Button
           type="text"
           icon={<BugOutlined />}
@@ -123,7 +127,7 @@ export default function AppHeader() {
         communicationId="5086f6bc-ad18-4f67-93a4-3f022f785a11"
         transcriptionId="cdde8a06-de70-42aa-87c9-77f94e6384b9"
         category="ui_bug"
-        title="Report UI Issue"
+        title={t('ReportIssue.reportUiIssue')}
       />
     </Header>
   );
