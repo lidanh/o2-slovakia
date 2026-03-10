@@ -33,4 +33,7 @@ pnpm-debug.log*
 # turbo
 .turbo
 
+# typescript
+*.tsbuildinfo
+
 .terragrunt-cache
