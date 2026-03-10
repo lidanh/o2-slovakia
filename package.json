@@ -4,11 +4,15 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "dev:ws-proxy": "cd apps/ws-proxy && go run .",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check"
   },
   "devDependencies": {
     "turbo": "^2.3.3"
   },
-  "packageManager": "pnpm@10.29.1"
+  "packageManager": "pnpm@10.29.1",
+  "pnpm": {
+    "onlyBuiltDependencies": []
+  }
 }
