@@ -20,8 +20,6 @@ interface SessionConfig {
   scenarioName: string;
   difficultyName: string;
   agentId: string;
-  apiKey: string;
-  wonderfulHost: string;
   userName: string;
 }
 
@@ -401,11 +399,11 @@ export default function useBrowserCall(
           };
         }
 
-        // Connect via server-side proxy (resolves API key and adds X-API-KEY header)
-        const wsHost = config.wonderfulHost
-          .replace("https://", "wss://")
-          .replace("http://", "ws://");
-        const params = new URLSearchParams({ agent_id: config.agentId });
+        // Build proxy URL — API key is resolved server-side
+        const params = new URLSearchParams({
+          token: tokenRef.current,
+          agent_id: config.agentId,
+        });
         const metadata = JSON.stringify({
           otp: config.otp,
           session_id: config.sessionId,
@@ -417,7 +415,7 @@ export default function useBrowserCall(
             .replace(/\//g, "_")
             .replace(/=+$/, "")
         );
-        const wsUrl = `${wsHost}/telephony/websocket/call?${params}`;
+        const wsUrl = `${process.env.NEXT_PUBLIC_WS_PROXY_URL}?${params}`;
 
         // Connection timeout
         connectTimeoutRef.current = setTimeout(() => {
@@ -428,10 +426,10 @@ export default function useBrowserCall(
           }
         }, 15000);
 
-        // Connect WebSocket via Worker
+        // Connect WebSocket via Worker (no protocols — API key handled by proxy)
         postToWorker({
           type: "connect",
-          payload: { url: wsUrl, protocols: ["apikey", config.apiKey] },
+          payload: { url: wsUrl },
         });
       })
       .catch((err) => {

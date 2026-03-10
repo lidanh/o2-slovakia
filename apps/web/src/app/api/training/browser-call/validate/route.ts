@@ -61,24 +61,7 @@ export async function GET(request: NextRequest) {
       tenant_url: string;
     } | undefined;
 
-    if (!wonderful?.api_key || !wonderful?.tenant_url) {
-      return NextResponse.json(
-        { error: "Wonderful config incomplete — api_key and tenant_url are required" },
-        { status: 500 }
-      );
-    }
-
-    let wonderfulHost: string;
-    try {
-      wonderfulHost = new URL(wonderful.tenant_url).origin;
-    } catch {
-      return NextResponse.json(
-        { error: "Invalid Wonderful tenant URL" },
-        { status: 500 }
-      );
-    }
-
-    const effectiveAgentId = session.scenario?.agent_id ?? wonderful.agent_id;
+    const effectiveAgentId = session.scenario?.agent_id ?? wonderful?.agent_id;
     if (!effectiveAgentId) {
       return NextResponse.json(
         { error: "No agent_id configured for scenario or global config" },
@@ -90,8 +73,6 @@ export async function GET(request: NextRequest) {
       sessionId: session.id,
       otp: session.otp,
       agentId: effectiveAgentId,
-      apiKey: wonderful.api_key,
-      wonderfulHost,
       scenarioName: session.scenario?.name ?? "Unknown",
       difficultyName: session.difficulty_level?.name ?? "Default",
       userName: session.user?.name ?? "Unknown",
