@@ -74,14 +74,20 @@ export function AuthProvider({
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") {
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         fetchProfile();
       } else if (event === "SIGNED_OUT") {
         setUser(null);
       }
     });
 
+    // If server-side render didn't provide user data, fetch client-side
+    if (!initialUser) {
+      fetchProfile();
+    }
+
     return () => subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase, fetchProfile]);
 
   return (
