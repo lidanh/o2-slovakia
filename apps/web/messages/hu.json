@@ -147,6 +147,8 @@
       "linkCopied": "Link vágólapra másolva!",
       "configSaved": "Konfiguráció mentve",
       "inviteResent": "Meghívó újraküldve",
+      "userDeleted": "Felhasználó törölve",
+      "failedToDeleteUser": "Nem sikerült törölni a felhasználót",
       "issueReported": "Hiba sikeresen bejelentve"
     },
     "fields": {
@@ -437,7 +439,8 @@
       "active": "Aktív",
       "invited": "Meghívott"
     },
-    "resendInvite": "Meghívó újraküldése"
+    "resendInvite": "Meghívó újraküldése",
+    "confirmDeleteUser": "Biztosan törölni szeretné ezt a felhasználót?"
   },
   "Teams": {
     "title": "Csapatok",

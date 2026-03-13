@@ -147,6 +147,8 @@
       "linkCopied": "Link copied to clipboard!",
       "configSaved": "Configuration saved",
       "inviteResent": "Invite resent",
+      "userDeleted": "User deleted",
+      "failedToDeleteUser": "Failed to delete user",
       "issueReported": "Issue reported successfully"
     },
     "fields": {
@@ -437,7 +439,8 @@
       "active": "Active",
       "invited": "Invited"
     },
-    "resendInvite": "Resend invite"
+    "resendInvite": "Resend invite",
+    "confirmDeleteUser": "Are you sure you want to delete this user?"
   },
   "Teams": {
     "title": "Teams",

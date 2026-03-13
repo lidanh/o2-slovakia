@@ -147,6 +147,8 @@
       "linkCopied": "Odkaz bol skopírovaný do schránky!",
       "configSaved": "Konfigurácia bola uložená",
       "inviteResent": "Pozvánka bola znovu odoslaná",
+      "userDeleted": "Používateľ bol odstránený",
+      "failedToDeleteUser": "Nepodarilo sa odstrániť používateľa",
       "issueReported": "Problém bol úspešne nahlásený"
     },
     "fields": {
@@ -437,7 +439,8 @@
       "active": "Aktívny",
       "invited": "Pozvaný"
     },
-    "resendInvite": "Znovu odoslať pozvánku"
+    "resendInvite": "Znovu odoslať pozvánku",
+    "confirmDeleteUser": "Naozaj chcete odstrániť tohto používateľa?"
   },
   "Teams": {
     "title": "Tímy",

@@ -139,6 +139,11 @@ export default function UsersPage() {
           });
           setEditingUser(editUser);
         }}
+        onDelete={async (u) => {
+          const res = await fetch(`/api/users/${u.id}`, { method: "DELETE" });
+          if (!res.ok) throw new Error("Failed to delete");
+          fetchUsers();
+        }}
         onResendInvite={async (u) => {
           const res = await fetch("/api/users/invite", {
             method: "POST",

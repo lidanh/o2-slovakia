@@ -1,8 +1,8 @@
 "use client";
 
-import { Table, Button, Tag, App, Tooltip } from "antd";
+import { Table, Button, Tag, App, Tooltip, Popconfirm } from "antd";
 import { useRouter } from "next/navigation";
-import { EditOutlined, SendOutlined } from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined, SendOutlined } from "@ant-design/icons";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import type { ColumnsType } from "antd/es/table";
@@ -19,14 +19,16 @@ interface UserTableProps {
   loading: boolean;
   onEdit?: (user: UserWithTeam) => void;
   onResendInvite?: (user: UserWithTeam) => Promise<void>;
+  onDelete?: (user: UserWithTeam) => Promise<void>;
 }
 
-export default function UserTable({ data, loading, onEdit, onResendInvite }: UserTableProps) {
+export default function UserTable({ data, loading, onEdit, onResendInvite, onDelete }: UserTableProps) {
   const t = useTranslations('Users');
   const tCommon = useTranslations('Common');
   const router = useRouter();
   const { message } = App.useApp();
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const ROLE_LABELS: Record<UserRole, string> = {
     admin: t('filters.admin'),
@@ -117,22 +119,56 @@ export default function UserTable({ data, loading, onEdit, onResendInvite }: Use
       render: (_, record) => record.team?.name ?? "—",
       sorter: (a, b) => (a.team?.name ?? "").localeCompare(b.team?.name ?? ""),
     },
-    ...(onEdit
+    ...(onEdit || onDelete
       ? [
           {
             title: "",
             key: "actions",
-            width: 48,
+            width: onEdit && onDelete ? 80 : 48,
             render: (_: unknown, record: UserWithTeam) => (
-              <Button
-                type="text"
-                size="small"
-                icon={<EditOutlined />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(record);
-                }}
-              />
+              <span style={{ display: "inline-flex", gap: 4 }}>
+                {onEdit && (
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<EditOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit(record);
+                    }}
+                  />
+                )}
+                {onDelete && (
+                  <Popconfirm
+                    title={t('confirmDeleteUser')}
+                    onConfirm={async (e) => {
+                      e?.stopPropagation();
+                      setDeletingId(record.id);
+                      try {
+                        await onDelete(record);
+                        message.success(tCommon('messages.userDeleted'));
+                      } catch {
+                        message.error(tCommon('messages.failedToDeleteUser'));
+                      } finally {
+                        setDeletingId(null);
+                      }
+                    }}
+                    onCancel={(e) => e?.stopPropagation()}
+                    okText={tCommon('buttons.delete')}
+                    cancelText={tCommon('buttons.cancel')}
+                    okButtonProps={{ danger: true }}
+                  >
+                    <Button
+                      type="text"
+                      size="small"
+                      danger
+                      icon={<DeleteOutlined />}
+                      loading={deletingId === record.id}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </Popconfirm>
+                )}
+              </span>
             ),
           },
         ]
