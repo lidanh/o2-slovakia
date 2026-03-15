@@ -5,7 +5,7 @@ import { getAuthUser } from "@/lib/auth/authorize";
 
 const UpdateProfileSchema = z.object({
   name: z.string().min(1).optional(),
-  phone: z.string().optional(),
+  phone: z.string().nullable().optional(),
   password: z.string().min(8).optional(),
   language: z.enum(["en", "sk", "hu"]).optional(),
 });
