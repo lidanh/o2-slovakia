@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import type { WorkerCommand, WorkerMessage } from "../workers/telephonyWorker.types";
-import type { FeedbackBreakdown, SessionHighlight } from "@repo/shared";
+import type { FeedbackBreakdown, SessionHighlight, FeedbackTranslations } from "@repo/shared";
 
 export type CallState =
   | "loading"
@@ -21,6 +21,7 @@ interface SessionConfig {
   difficultyName: string;
   agentId: string;
   userName: string;
+  userLanguage: string;
 }
 
 export interface InlineFeedback {
@@ -30,6 +31,7 @@ export interface InlineFeedback {
   feedback_breakdown: FeedbackBreakdown | null;
   suggestions: string[] | null;
   highlights: SessionHighlight[] | null;
+  feedback_translations: FeedbackTranslations | null;
 }
 
 interface UseBrowserCallReturn {
@@ -142,6 +144,7 @@ export default function useBrowserCall(
             feedback_breakdown: data.feedback_breakdown ?? null,
             suggestions: data.suggestions ?? null,
             highlights: data.highlights ?? null,
+            feedback_translations: data.feedback_translations ?? null,
           });
         }
       }

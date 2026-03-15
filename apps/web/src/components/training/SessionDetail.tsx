@@ -24,8 +24,8 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import {useTranslations} from 'next-intl';
-import type { SessionWithDetails, FeedbackBreakdown, TranscriptEntry } from "@repo/shared";
+import {useTranslations, useLocale} from 'next-intl';
+import type { SessionWithDetails, FeedbackBreakdown, TranscriptEntry, FeedbackTranslations } from "@repo/shared";
 import {
   SESSION_STATUS_LABELS,
   SESSION_STATUS_COLORS,
@@ -50,9 +50,31 @@ interface SessionDetailProps {
   onSessionUpdate?: (session: SessionWithDetails) => void;
 }
 
+function getLocalizedContent(session: SessionWithDetails, locale: string) {
+  const translations = session.feedback_translations as FeedbackTranslations | null;
+  const lang = locale as 'sk' | 'hu';
+  const tr = translations?.[lang];
+  if (!tr || (locale !== 'sk' && locale !== 'hu')) {
+    return {
+      feedback_summary: session.feedback_summary,
+      suggestions: session.suggestions,
+      highlights: session.highlights,
+      getItemFeedback: (_categoryKey: string, itemKey: string, fallback: string) => fallback,
+    };
+  }
+  return {
+    feedback_summary: tr.feedback_summary ?? session.feedback_summary,
+    suggestions: tr.suggestions ?? session.suggestions,
+    highlights: tr.highlights ?? session.highlights,
+    getItemFeedback: (categoryKey: string, itemKey: string, fallback: string) =>
+      tr.feedback_breakdown_overrides?.[categoryKey]?.items_feedback?.[itemKey] ?? fallback,
+  };
+}
+
 export default function SessionDetail({ session, onSessionUpdate }: SessionDetailProps) {
   const t = useTranslations('Training');
   const tCommon = useTranslations('Common');
+  const locale = useLocale();
   const [generating, setGenerating] = useState(false);
   const [issueEntry, setIssueEntry] = useState<TranscriptEntry | null>(null);
   const { message } = App.useApp();
@@ -62,6 +84,8 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
     partially_passed: { color: SCORE_TAG_CONFIG_COLORS.partially_passed, label: tCommon('scoreLabels.partiallyPassed') },
     failed: { color: SCORE_TAG_CONFIG_COLORS.failed, label: tCommon('scoreLabels.failed') },
   } as const;
+
+  const localized = getLocalizedContent(session, locale);
 
   const canGenerateFeedback =
     session.status === "completed" &&
@@ -155,7 +179,7 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
                     </Tag>
                     <div style={{ flex: 1 }}>
                       <Text strong style={{ fontSize: 13, display: "block" }}>{item.label}</Text>
-                      <Text style={{ fontSize: 12, color: "#6B7280" }}>{item.feedback}</Text>
+                      <Text style={{ fontSize: 12, color: "#6B7280" }}>{localized.getItemFeedback(key, item.key, item.feedback)}</Text>
                     </div>
                     <Text style={{ fontSize: 12, color: "#9CA3AF", flexShrink: 0 }}>
                       {item.earned_points}/{item.max_points}
@@ -255,7 +279,7 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
       {session.feedback_summary && (
         <Card title={t('detail.feedbackSummary')} variant="borderless" className="card-animated" style={{ marginTop: 20, animationDelay: "150ms" }}>
           <Paragraph style={{ fontSize: 14, lineHeight: 1.8, color: "#374151", margin: 0 }}>
-            {session.feedback_summary}
+            {localized.feedback_summary}
           </Paragraph>
         </Card>
       )}
@@ -289,12 +313,12 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
         </Row>
       )}
 
-      {session.suggestions && session.suggestions.length > 0 && (
+      {localized.suggestions && localized.suggestions.length > 0 && (
         <Card title={t('detail.suggestions')} variant="borderless" style={{ marginTop: 20 }}>
           <List
-            dataSource={session.suggestions}
+            dataSource={localized.suggestions}
             renderItem={(item, idx) => (
-              <List.Item style={{ padding: "12px 0", borderBottom: idx < session.suggestions!.length - 1 ? "1px solid #F0F0F0" : "none" }}>
+              <List.Item style={{ padding: "12px 0", borderBottom: idx < localized.suggestions!.length - 1 ? "1px solid #F0F0F0" : "none" }}>
                 <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                   <div style={{ width: 24, height: 24, borderRadius: 8, background: "linear-gradient(135deg, #EEF2FF, #E0E7FF)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#0112AA", flexShrink: 0 }}>
                     {idx + 1}
@@ -307,12 +331,12 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
         </Card>
       )}
 
-      {session.highlights && session.highlights.length > 0 && (
+      {localized.highlights && localized.highlights.length > 0 && (
         <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
           <Col xs={24} lg={12}>
             <Card variant="borderless" title={<Space><CheckCircleOutlined style={{ color: "#059669" }} /><span>{t('detail.positiveHighlights')}</span></Space>}>
               <List
-                dataSource={session.highlights.filter((h) => h.type === "positive")}
+                dataSource={localized.highlights.filter((h) => h.type === "positive")}
                 renderItem={(item) => (
                   <List.Item style={{ padding: "10px 0" }}>
                     <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
@@ -328,7 +352,7 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
           <Col xs={24} lg={12}>
             <Card variant="borderless" title={<Space><CloseCircleOutlined style={{ color: "#EF4444" }} /><span>{t('detail.areasForImprovement')}</span></Space>}>
               <List
-                dataSource={session.highlights.filter((h) => h.type === "negative")}
+                dataSource={localized.highlights.filter((h) => h.type === "negative")}
                 renderItem={(item) => (
                   <List.Item style={{ padding: "10px 0" }}>
                     <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>

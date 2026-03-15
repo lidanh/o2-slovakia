@@ -118,6 +118,7 @@ export interface TrainingSession {
   answered_at: string | null;
   completed_at: string | null;
   created_at: string;
+  feedback_translations: FeedbackTranslations | null;
   updated_at: string;
 }
 
@@ -186,6 +187,25 @@ export interface TranscriptEntry {
   timestamp?: number;
   transcription_id?: string;
 }
+
+// ============================================================
+// Feedback Translation Types
+// ============================================================
+
+export interface FeedbackTranslationOverrides {
+  items_feedback: Record<string, string>;  // item.key -> translated feedback text
+  suggestions: string[];
+  highlights: SessionHighlight[];
+}
+
+export interface FeedbackTranslation {
+  feedback_summary: string;
+  suggestions: string[];
+  highlights: SessionHighlight[];
+  feedback_breakdown_overrides: Record<string, FeedbackTranslationOverrides>;
+}
+
+export type FeedbackTranslations = Partial<Record<'sk' | 'hu', FeedbackTranslation>>;
 
 // ============================================================
 // API Request / Response Types

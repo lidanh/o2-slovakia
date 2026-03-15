@@ -14,6 +14,8 @@ import dynamic from "next/dynamic";
 import useBrowserCall from "@/hooks/useBrowserCall";
 import type { InlineFeedback } from "@/hooks/useBrowserCall";
 import useMicrophone from "@/hooks/useMicrophone";
+import { t as translate, type CallLocale } from "@/lib/call-translations";
+import type { SessionHighlight } from "@repo/shared";
 
 const SiriWaveView = dynamic(
   () => import("@/components/call/SiriWaveView"),
@@ -22,8 +24,79 @@ const SiriWaveView = dynamic(
 
 const { Text } = Typography;
 
+const LOCALE_LABELS: Record<CallLocale, string> = {
+  en: "EN",
+  sk: "SK",
+  hu: "HU",
+};
+
+// --- Language Switcher ---
+function LanguageSwitcher({
+  locale,
+  onChange,
+}: {
+  locale: CallLocale;
+  onChange: (l: CallLocale) => void;
+}) {
+  return (
+    <div style={{ display: "flex", gap: 4 }}>
+      {(["en", "sk", "hu"] as CallLocale[]).map((l) => (
+        <button
+          key={l}
+          onClick={() => onChange(l)}
+          style={{
+            width: 32,
+            height: 24,
+            borderRadius: 6,
+            border: l === locale ? "2px solid #0112AA" : "1px solid #E5E7EB",
+            background: l === locale ? "#EEF2FF" : "#fff",
+            color: l === locale ? "#0112AA" : "#6B7280",
+            fontSize: 11,
+            fontWeight: 700,
+            cursor: "pointer",
+            transition: "all 0.15s",
+          }}
+        >
+          {LOCALE_LABELS[l]}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// --- Helper: get localized feedback content ---
+function getLocalizedFeedback(
+  feedback: InlineFeedback,
+  locale: CallLocale
+): {
+  summary: string;
+  suggestions: string[] | null;
+  highlights: SessionHighlight[] | null;
+} {
+  if (locale === "en" || !feedback.feedback_translations) {
+    return {
+      summary: feedback.feedback_summary,
+      suggestions: feedback.suggestions,
+      highlights: feedback.highlights,
+    };
+  }
+  const tr = feedback.feedback_translations[locale];
+  if (!tr) {
+    return {
+      summary: feedback.feedback_summary,
+      suggestions: feedback.suggestions,
+      highlights: feedback.highlights,
+    };
+  }
+  return {
+    summary: tr.feedback_summary,
+    suggestions: tr.suggestions,
+    highlights: tr.highlights,
+  };
+}
+
 // --- Animated Score Ring ---
-function ScoreRing({ score, size = 120 }: { score: number; size?: number }) {
+function ScoreRing({ score, size = 120, locale }: { score: number; size?: number; locale: CallLocale }) {
   const [displayScore, setDisplayScore] = useState(0);
   const radius = (size - 12) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -91,7 +164,7 @@ function ScoreRing({ score, size = 120 }: { score: number; size?: number }) {
           {displayScore}
         </span>
         <span style={{ fontSize: 12, color: "#9CA3AF", marginTop: 2 }}>
-          out of 100
+          {translate(locale, "outOf100")}
         </span>
       </div>
     </div>
@@ -117,7 +190,9 @@ function Stars({ rating }: { rating: number }) {
 }
 
 // --- Feedback Display ---
-function FeedbackReveal({ feedback }: { feedback: InlineFeedback }) {
+function FeedbackReveal({ feedback, locale }: { feedback: InlineFeedback; locale: CallLocale }) {
+  const localized = getLocalizedFeedback(feedback, locale);
+
   return (
     <div
       style={{
@@ -139,7 +214,7 @@ function FeedbackReveal({ feedback }: { feedback: InlineFeedback }) {
           animation: "scaleIn 0.6s ease-out",
         }}
       >
-        <ScoreRing score={feedback.score} />
+        <ScoreRing score={feedback.score} locale={locale} />
         <Stars rating={feedback.star_rating} />
       </div>
 
@@ -162,12 +237,12 @@ function FeedbackReveal({ feedback }: { feedback: InlineFeedback }) {
             textAlign: "left",
           }}
         >
-          {feedback.feedback_summary}
+          {localized.summary}
         </Text>
       </div>
 
       {/* Key Suggestions */}
-      {feedback.suggestions && feedback.suggestions.length > 0 && (
+      {localized.suggestions && localized.suggestions.length > 0 && (
         <div style={{ width: "100%" }}>
           <Text
             strong
@@ -181,10 +256,10 @@ function FeedbackReveal({ feedback }: { feedback: InlineFeedback }) {
               animation: "fadeInUp 0.5s 0.6s both",
             }}
           >
-            How to improve
+            {translate(locale, "howToImprove")}
           </Text>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {feedback.suggestions.slice(0, 3).map((s, i) => (
+            {localized.suggestions.slice(0, 3).map((s, i) => (
               <div
                 key={i}
                 style={{
@@ -226,18 +301,18 @@ function FeedbackReveal({ feedback }: { feedback: InlineFeedback }) {
       )}
 
       {/* Highlights summary */}
-      {feedback.highlights && feedback.highlights.length > 0 && (
+      {localized.highlights && localized.highlights.length > 0 && (
         <div
           style={{
             width: "100%",
             display: "flex",
             gap: 10,
-            animation: `fadeInUp 0.5s ${0.7 + (feedback.suggestions?.length ?? 0) * 0.15 + 0.2}s both`,
+            animation: `fadeInUp 0.5s ${0.7 + (localized.suggestions?.length ?? 0) * 0.15 + 0.2}s both`,
           }}
         >
           {(() => {
-            const pos = feedback.highlights!.filter((h) => h.type === "positive").length;
-            const neg = feedback.highlights!.filter((h) => h.type === "negative").length;
+            const pos = localized.highlights!.filter((h) => h.type === "positive").length;
+            const neg = localized.highlights!.filter((h) => h.type === "negative").length;
             return (
               <>
                 {pos > 0 && (
@@ -252,7 +327,7 @@ function FeedbackReveal({ feedback }: { feedback: InlineFeedback }) {
                   >
                     <CheckCircleOutlined style={{ color: "#059669", fontSize: 18 }} />
                     <Text style={{ fontSize: 13, color: "#059669", display: "block", marginTop: 4, fontWeight: 600 }}>
-                      {pos} strength{pos > 1 ? "s" : ""} noted
+                      {translate(locale, pos > 1 ? "strengthsNoted" : "strengthNoted", { count: pos })}
                     </Text>
                   </div>
                 )}
@@ -268,7 +343,7 @@ function FeedbackReveal({ feedback }: { feedback: InlineFeedback }) {
                   >
                     <CloseCircleOutlined style={{ color: "#EF4444", fontSize: 18 }} />
                     <Text style={{ fontSize: 13, color: "#EF4444", display: "block", marginTop: 4, fontWeight: 600 }}>
-                      {neg} area{neg > 1 ? "s" : ""} to improve
+                      {translate(locale, neg > 1 ? "areasToImprove" : "areaToImprove", { count: neg })}
                     </Text>
                   </div>
                 )}
@@ -285,14 +360,14 @@ function FeedbackReveal({ feedback }: { feedback: InlineFeedback }) {
           animation: "fadeIn 0.5s 1.5s both",
         }}
       >
-        Full feedback available in your dashboard
+        {translate(locale, "fullFeedback")}
       </Text>
     </div>
   );
 }
 
 // --- Analyzing animation ---
-function AnalyzingState() {
+function AnalyzingState({ locale }: { locale: CallLocale }) {
   return (
     <div
       style={{
@@ -341,10 +416,10 @@ function AnalyzingState() {
             marginBottom: 6,
           }}
         >
-          Analyzing your performance
+          {translate(locale, "analyzing")}
         </div>
         <Text style={{ fontSize: 14, color: "#9CA3AF" }}>
-          Our AI is reviewing your conversation...
+          {translate(locale, "aiReviewing")}
         </Text>
       </div>
 
@@ -375,6 +450,17 @@ export default function BrowserCallPage() {
 
   const mic = useMicrophone();
   const call = useBrowserCall(token, mic.start);
+  const [locale, setLocale] = useState<CallLocale>("en");
+
+  // Initialize locale from user's language preference once config loads
+  useEffect(() => {
+    if (call.config?.userLanguage) {
+      const lang = call.config.userLanguage;
+      if (lang === "sk" || lang === "hu") {
+        setLocale(lang);
+      }
+    }
+  }, [call.config?.userLanguage]);
 
   // Validate token on mount
   useEffect(() => {
@@ -466,6 +552,11 @@ export default function BrowserCallPage() {
           gap: 28,
         }}
       >
+        {/* Language switcher — top right */}
+        <div style={{ position: "absolute", top: 16, right: 16 }}>
+          <LanguageSwitcher locale={locale} onChange={setLocale} />
+        </div>
+
         {/* Logo + Title */}
         <div style={{ textAlign: "center" }}>
           <Image
@@ -493,7 +584,7 @@ export default function BrowserCallPage() {
           <div style={{ padding: "40px 0", textAlign: "center" }}>
             <Spin size="large" />
             <div style={{ marginTop: 16, color: "#9CA3AF", fontSize: 15 }}>
-              Validating session...
+              {translate(locale, "validating")}
             </div>
           </div>
         )}
@@ -510,18 +601,18 @@ export default function BrowserCallPage() {
             <Text
               style={{ color: "#9CA3AF", fontSize: 14, marginTop: 8, display: "block" }}
             >
-              Please request a new link from your administrator.
+              {translate(locale, "requestNewLink")}
             </Text>
           </div>
         )}
 
         {/* Completing / Analyzing state */}
-        {call.state === "completing" && <AnalyzingState />}
+        {call.state === "completing" && <AnalyzingState locale={locale} />}
 
         {/* Completed state — with or without feedback */}
         {call.state === "completed" && (
           call.feedbackResult ? (
-            <FeedbackReveal feedback={call.feedbackResult} />
+            <FeedbackReveal feedback={call.feedbackResult} locale={locale} />
           ) : (
             <div style={{ padding: "24px 0", textAlign: "center", animation: "fadeIn 0.5s ease-out" }}>
               <CheckCircleOutlined
@@ -530,11 +621,10 @@ export default function BrowserCallPage() {
               <div
                 style={{ color: "#1a1a2e", fontSize: 20, fontWeight: 700, marginBottom: 8 }}
               >
-                Session Completed
+                {translate(locale, "sessionCompleted")}
               </div>
               <Text style={{ color: "#9CA3AF", fontSize: 15 }}>
-                Your training session has been recorded. Feedback will be available
-                in your dashboard.
+                {translate(locale, "feedbackInDashboard")}
               </Text>
             </div>
           )
@@ -582,7 +672,7 @@ export default function BrowserCallPage() {
                       fontWeight: 500,
                     }}
                   >
-                    Tell this code to the agent
+                    {translate(locale, "tellCode")}
                   </div>
                 </div>
               )}
@@ -618,10 +708,14 @@ export default function BrowserCallPage() {
                   minHeight: 20,
                 }}
               >
-                {call.state === "ready" && "Press Start to begin your session"}
-                {call.state === "requesting_mic" && "Allow microphone access..."}
-                {call.state === "connecting" && "Connecting to agent..."}
-                {call.state === "connected" && call.statusText}
+                {call.state === "ready" && translate(locale, "pressStart")}
+                {call.state === "requesting_mic" && translate(locale, "allowMic")}
+                {call.state === "connecting" && translate(locale, "connecting")}
+                {call.state === "connected" && (
+                  call.isSpeaking
+                    ? translate(locale, "agentSpeaking")
+                    : translate(locale, "listening")
+                )}
               </div>
 
               {/* Action buttons */}
@@ -643,7 +737,7 @@ export default function BrowserCallPage() {
                       boxShadow: "0 4px 16px rgba(1, 18, 170, 0.3)",
                     }}
                   >
-                    Start Session
+                    {translate(locale, "startSession")}
                   </Button>
                 )}
                 {(call.state === "connected" || call.state === "connecting") && (
@@ -658,7 +752,7 @@ export default function BrowserCallPage() {
                       borderRadius: 14,
                     }}
                   >
-                    End Session
+                    {translate(locale, "endSession")}
                   </Button>
                 )}
               </div>

@@ -3,7 +3,8 @@ import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
 import { generateFeedback } from "@/lib/llm";
 import { generateSessionFeedback } from "@/lib/feedback";
-import type { TranscriptEntry } from "@repo/shared";
+import { translateFeedback } from "@/lib/evaluation/translate";
+import type { TranscriptEntry, FeedbackTranslations } from "@repo/shared";
 
 const FeedbackSchema = z.object({
   transcript: z.array(
@@ -85,6 +86,16 @@ export async function POST(
 
     const feedback = await generateFeedback(transcript, scenarioName, difficultyName, scenarioType, scenarioPrompt);
 
+    // Translate feedback to SK/HU in parallel
+    const [skResult, huResult] = await Promise.allSettled([
+      translateFeedback(feedback, "sk"),
+      translateFeedback(feedback, "hu"),
+    ]);
+    const translations: FeedbackTranslations = {};
+    if (skResult.status === "fulfilled") translations.sk = skResult.value;
+    if (huResult.status === "fulfilled") translations.hu = huResult.value;
+    const feedback_translations = Object.keys(translations).length > 0 ? translations : null;
+
     const { data, error } = await supabase
       .from("training_sessions")
       .update({
@@ -94,6 +105,7 @@ export async function POST(
         feedback_breakdown: feedback.feedback_breakdown,
         suggestions: feedback.suggestions,
         highlights: feedback.highlights,
+        feedback_translations,
         transcript,
         updated_at: new Date().toISOString(),
       })

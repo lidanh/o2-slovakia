@@ -76,6 +76,7 @@ export async function GET(request: NextRequest) {
       scenarioName: session.scenario?.name ?? "Unknown",
       difficultyName: session.difficulty_level?.name ?? "Default",
       userName: session.user?.name ?? "Unknown",
+      userLanguage: session.user?.language ?? "en",
     });
   } catch (err) {
     console.error("GET /api/training/browser-call/validate error:", err);

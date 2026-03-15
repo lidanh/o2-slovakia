@@ -1,13 +1,15 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { generateFeedback, type FeedbackResult } from "@/lib/llm";
 import { getCommunication } from "@/lib/wonderful";
-import type { TranscriptEntry } from "@repo/shared";
+import { translateFeedback } from "@/lib/evaluation/translate";
+import type { TranscriptEntry, FeedbackTranslations } from "@repo/shared";
 
 export interface GenerateSessionFeedbackResult {
   alreadyExists?: boolean;
   success: boolean;
   feedback: FeedbackResult | null;
   session: Record<string, unknown>;
+  feedback_translations?: FeedbackTranslations | null;
 }
 
 /**
@@ -99,7 +101,17 @@ export async function generateSessionFeedback(
     scenarioPrompt
   );
 
-  // 7. Update session with feedback fields + transcript
+  // 7. Translate feedback to SK/HU in parallel
+  const [skResult, huResult] = await Promise.allSettled([
+    translateFeedback(feedback, "sk"),
+    translateFeedback(feedback, "hu"),
+  ]);
+  const translations: FeedbackTranslations = {};
+  if (skResult.status === "fulfilled") translations.sk = skResult.value;
+  if (huResult.status === "fulfilled") translations.hu = huResult.value;
+  const feedback_translations = Object.keys(translations).length > 0 ? translations : null;
+
+  // 8. Update session with feedback fields + transcript
   await supabase
     .from("training_sessions")
     .update({
@@ -109,12 +121,13 @@ export async function generateSessionFeedback(
       feedback_breakdown: feedback.feedback_breakdown,
       suggestions: feedback.suggestions,
       highlights: feedback.highlights,
+      feedback_translations,
       transcript,
       updated_at: new Date().toISOString(),
     })
     .eq("id", sessionId);
 
-  // 8. Mark assignment as completed if applicable
+  // 9. Mark assignment as completed if applicable
   if (session.assignment_id) {
     await supabase
       .from("assignments")
@@ -122,6 +135,6 @@ export async function generateSessionFeedback(
       .eq("id", session.assignment_id);
   }
 
-  // 9. Return result
-  return { success: true, feedback, session };
+  // 10. Return result
+  return { success: true, feedback, session, feedback_translations };
 }

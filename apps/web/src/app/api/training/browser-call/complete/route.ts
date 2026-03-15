@@ -4,6 +4,8 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { verifyBrowserCallToken } from "@/lib/jwt";
 import { generateFeedback } from "@/lib/llm";
 import { getCommunication } from "@/lib/wonderful";
+import { translateFeedback } from "@/lib/evaluation/translate";
+import type { FeedbackTranslations } from "@repo/shared";
 
 const CompleteSchema = z.object({
   token: z.string(),
@@ -120,6 +122,7 @@ export async function POST(request: NextRequest) {
 
     // Generate feedback (if transcript has content)
     let feedbackResult = null;
+    let feedbackTranslations: FeedbackTranslations | null = null;
     if (transcript.length > 0) {
       try {
         const scenarioPrompt = session.scenario?.prompt ?? session.scenario?.description ?? undefined;
@@ -132,6 +135,16 @@ export async function POST(request: NextRequest) {
           scenarioPrompt
         );
 
+        // Translate feedback to SK/HU in parallel
+        const [skResult, huResult] = await Promise.allSettled([
+          translateFeedback(feedbackResult, "sk"),
+          translateFeedback(feedbackResult, "hu"),
+        ]);
+        const translations: FeedbackTranslations = {};
+        if (skResult.status === "fulfilled") translations.sk = skResult.value;
+        if (huResult.status === "fulfilled") translations.hu = huResult.value;
+        feedbackTranslations = Object.keys(translations).length > 0 ? translations : null;
+
         await supabase
           .from("training_sessions")
           .update({
@@ -141,6 +154,7 @@ export async function POST(request: NextRequest) {
             feedback_breakdown: feedbackResult.feedback_breakdown,
             suggestions: feedbackResult.suggestions,
             highlights: feedbackResult.highlights,
+            feedback_translations: feedbackTranslations,
           })
           .eq("id", payload.sessionId);
       } catch (fbErr) {
@@ -170,6 +184,7 @@ export async function POST(request: NextRequest) {
       feedback_breakdown: feedbackResult?.feedback_breakdown ?? null,
       suggestions: feedbackResult?.suggestions ?? null,
       highlights: feedbackResult?.highlights ?? null,
+      feedback_translations: feedbackTranslations,
     });
   } catch (err) {
     console.error("POST /api/training/browser-call/complete error:", err);
