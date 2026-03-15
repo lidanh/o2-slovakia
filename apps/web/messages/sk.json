@@ -308,7 +308,8 @@
       "message": "Chystáte sa zavolať {count, plural, one {# účastníkovi} few {# účastníkom} other {# účastníkom}}. Každý účastník dostane samostatný hovor. Chcete pokračovať?",
       "callAll": "Zavolať všetkým"
     },
-    "train": "Trénovať"
+    "train": "Trénovať",
+    "retrain": "Pretrénovať"
   },
   "Scenarios": {
     "title": "Scenáre",

@@ -308,7 +308,8 @@
       "message": "Ön {count} gyakornokot fog hívni. Minden gyakornok külön hívást kap. Szeretné folytatni?",
       "callAll": "Mindenkit hívás"
     },
-    "train": "Képzés"
+    "train": "Képzés",
+    "retrain": "Újraképzés"
   },
   "Scenarios": {
     "title": "Forgatókönyvek",

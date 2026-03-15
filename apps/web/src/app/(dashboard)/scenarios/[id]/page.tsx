@@ -269,6 +269,7 @@ export default function ScenarioDetailPage() {
                   key: "phone",
                   label: tCommon('callTypes.phoneCall'),
                   icon: <PhoneOutlined />,
+                  disabled: !r.user.phone,
                   onClick: () => confirmTriggerCall(r),
                 },
                 {
@@ -280,14 +281,12 @@ export default function ScenarioDetailPage() {
               ],
             }}
             trigger={["click"]}
-            disabled={r.status === "completed"}
           >
             <Button
               type="link"
               icon={<PhoneOutlined />}
-              disabled={r.status === "completed"}
             >
-              {tTraining('train')} <DownOutlined style={{ fontSize: 10 }} />
+              {r.status === "completed" ? tTraining('retrain') : tTraining('train')} <DownOutlined style={{ fontSize: 10 }} />
             </Button>
           </Dropdown>
           <Popconfirm

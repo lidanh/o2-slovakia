@@ -308,7 +308,8 @@
       "message": "You are about to call {count} trainees. Each trainee will receive a separate call. Do you want to proceed?",
       "callAll": "Call All"
     },
-    "train": "Train"
+    "train": "Train",
+    "retrain": "Retrain"
   },
   "Scenarios": {
     "title": "Scenarios",
