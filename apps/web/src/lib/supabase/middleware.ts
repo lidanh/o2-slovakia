@@ -39,9 +39,9 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Allow unauthenticated access to accept-invite, reset-password, forgot-password
+  // Allow unauthenticated access to invite, reset-password, forgot-password
   if (
-    pathname.startsWith("/accept-invite") ||
+    pathname.startsWith("/invite") ||
     pathname.startsWith("/reset-password") ||
     pathname.startsWith("/forgot-password")
   ) {
@@ -67,21 +67,12 @@ export async function updateSession(request: NextRequest) {
 
   // If user exists, apply role-based routing
   if (user) {
-    // Check if user still needs to complete invite setup
     const service = createServiceClient();
     const { data: profile } = await service
       .from("users")
-      .select("status, role")
+      .select("role")
       .eq("id", user.id)
       .single();
-
-    if (profile?.status === "invited") {
-      await service
-        .from("users")
-        .update({ status: "active", updated_at: new Date().toISOString() })
-        .eq("id", user.id);
-      profile.status = "active";
-    }
 
     // Use role from DB (authoritative) with fallback to JWT metadata
     const role = (profile?.role as UserRole) ?? (user.app_metadata?.role as UserRole) ?? "user";

@@ -12,7 +12,6 @@ export interface Team {
 }
 
 export type UserRole = "admin" | "team_manager" | "user";
-export type UserStatus = "invited" | "active";
 
 export interface User {
   id: string;
@@ -20,13 +19,34 @@ export interface User {
   email: string;
   phone: string | null;
   role: UserRole;
-  status: UserStatus;
   team_id: string | null;
   avatar_url: string | null;
   invited_by: string | null;
   created_at: string;
   updated_at: string;
   language: string;
+}
+
+export type InvitationStatus = "pending" | "accepted" | "expired" | "cancelled";
+
+export interface Invitation {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  team_id: string | null;
+  invited_by: string | null;
+  invitation_token: string;
+  status: InvitationStatus;
+  expires_at: string;
+  accepted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InvitationWithInviter extends Invitation {
+  inviter: { name: string } | null;
+  team: Team | null;
 }
 
 export interface Scenario {

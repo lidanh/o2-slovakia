@@ -149,6 +149,7 @@
       "inviteResent": "Invite resent",
       "userDeleted": "User deleted",
       "failedToDeleteUser": "Failed to delete user",
+      "invitationCancelled": "Invitation cancelled",
       "issueReported": "Issue reported successfully"
     },
     "fields": {
@@ -440,7 +441,8 @@
       "invited": "Invited"
     },
     "resendInvite": "Resend invite",
-    "confirmDeleteUser": "Are you sure you want to delete this user?"
+    "confirmDeleteUser": "Are you sure you want to delete this user?",
+    "confirmCancelInvitation": "Are you sure you want to cancel this invitation?"
   },
   "Teams": {
     "title": "Teams",

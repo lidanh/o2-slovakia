@@ -7,7 +7,6 @@ const UpdateProfileSchema = z.object({
   name: z.string().min(1).optional(),
   phone: z.string().optional(),
   password: z.string().min(8).optional(),
-  status: z.enum(["active"]).optional(),
   language: z.enum(["en", "sk", "hu"]).optional(),
 });
 

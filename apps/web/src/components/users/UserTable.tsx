@@ -6,7 +6,8 @@ import { DeleteOutlined, EditOutlined, SendOutlined } from "@ant-design/icons";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import type { ColumnsType } from "antd/es/table";
-import type { UserWithTeam, UserRole } from "@repo/shared";
+import type { UserRole } from "@repo/shared";
+import type { UserOrInvitation } from "@/app/(dashboard)/users/page";
 
 const ROLE_COLORS: Record<UserRole, string> = {
   admin: "purple",
@@ -15,11 +16,11 @@ const ROLE_COLORS: Record<UserRole, string> = {
 };
 
 interface UserTableProps {
-  data: UserWithTeam[];
+  data: UserOrInvitation[];
   loading: boolean;
-  onEdit?: (user: UserWithTeam) => void;
-  onResendInvite?: (user: UserWithTeam) => Promise<void>;
-  onDelete?: (user: UserWithTeam) => Promise<void>;
+  onEdit?: (item: UserOrInvitation) => void;
+  onResendInvite?: (item: UserOrInvitation) => Promise<void>;
+  onDelete?: (item: UserOrInvitation) => Promise<void>;
 }
 
 export default function UserTable({ data, loading, onEdit, onResendInvite, onDelete }: UserTableProps) {
@@ -36,10 +37,10 @@ export default function UserTable({ data, loading, onEdit, onResendInvite, onDel
     user: t('filters.user'),
   };
 
-  async function handleResend(user: UserWithTeam) {
-    setResendingId(user.id);
+  async function handleResend(item: UserOrInvitation) {
+    setResendingId(item.id);
     try {
-      await onResendInvite?.(user);
+      await onResendInvite?.(item);
       message.success(tCommon('messages.inviteResent'));
     } catch {
       message.error(tCommon('messages.failedToResendInvite'));
@@ -48,7 +49,7 @@ export default function UserTable({ data, loading, onEdit, onResendInvite, onDel
     }
   }
 
-  const columns: ColumnsType<UserWithTeam> = [
+  const columns: ColumnsType<UserOrInvitation> = [
     {
       title: t('table.name'),
       dataIndex: "name",
@@ -64,6 +65,7 @@ export default function UserTable({ data, loading, onEdit, onResendInvite, onDel
       title: t('table.phone'),
       dataIndex: "phone",
       key: "phone",
+      render: (phone: string | null) => phone ?? "—",
     },
     {
       title: t('table.role'),
@@ -82,16 +84,15 @@ export default function UserTable({ data, loading, onEdit, onResendInvite, onDel
     },
     {
       title: t('table.status'),
-      dataIndex: "status",
       key: "status",
       width: 130,
       filters: [
-        { text: t('filters.active'), value: "active" },
-        { text: t('filters.invited'), value: "invited" },
+        { text: t('filters.active'), value: "user" },
+        { text: t('filters.invited'), value: "invitation" },
       ],
-      onFilter: (value, record) => record.status === value,
-      render: (status: string, record: UserWithTeam) =>
-        status === "invited" ? (
+      onFilter: (value, record) => record.type === value,
+      render: (_, record) =>
+        record.type === "invitation" ? (
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
             <Tag color="orange">{t('filters.invited')}</Tag>
             {onResendInvite && (
@@ -125,9 +126,9 @@ export default function UserTable({ data, loading, onEdit, onResendInvite, onDel
             title: "",
             key: "actions",
             width: onEdit && onDelete ? 80 : 48,
-            render: (_: unknown, record: UserWithTeam) => (
+            render: (_: unknown, record: UserOrInvitation) => (
               <span style={{ display: "inline-flex", gap: 4 }}>
-                {onEdit && (
+                {onEdit && record.type === "user" && (
                   <Button
                     type="text"
                     size="small"
@@ -140,13 +141,21 @@ export default function UserTable({ data, loading, onEdit, onResendInvite, onDel
                 )}
                 {onDelete && (
                   <Popconfirm
-                    title={t('confirmDeleteUser')}
+                    title={
+                      record.type === "invitation"
+                        ? t('confirmCancelInvitation')
+                        : t('confirmDeleteUser')
+                    }
                     onConfirm={async (e) => {
                       e?.stopPropagation();
                       setDeletingId(record.id);
                       try {
                         await onDelete(record);
-                        message.success(tCommon('messages.userDeleted'));
+                        message.success(
+                          record.type === "invitation"
+                            ? tCommon('messages.invitationCancelled')
+                            : tCommon('messages.userDeleted')
+                        );
                       } catch {
                         message.error(tCommon('messages.failedToDeleteUser'));
                       } finally {
@@ -154,7 +163,11 @@ export default function UserTable({ data, loading, onEdit, onResendInvite, onDel
                       }
                     }}
                     onCancel={(e) => e?.stopPropagation()}
-                    okText={tCommon('buttons.delete')}
+                    okText={
+                      record.type === "invitation"
+                        ? tCommon('buttons.cancel')
+                        : tCommon('buttons.delete')
+                    }
                     cancelText={tCommon('buttons.cancel')}
                     okButtonProps={{ danger: true }}
                   >
@@ -184,8 +197,12 @@ export default function UserTable({ data, loading, onEdit, onResendInvite, onDel
       size="middle"
       pagination={{ pageSize: 20, showSizeChanger: true }}
       onRow={(record) => ({
-        style: { cursor: "pointer" },
-        onClick: () => router.push(`/users/${record.id}`),
+        style: { cursor: record.type === "user" ? "pointer" : "default" },
+        onClick: () => {
+          if (record.type === "user") {
+            router.push(`/users/${record.id}`);
+          }
+        },
       })}
     />
   );

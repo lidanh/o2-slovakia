@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { Button, Typography, Alert, Flex, Spin } from "antd";
-import { CheckCircleOutlined, RedoOutlined } from "@ant-design/icons";
+import { RedoOutlined } from "@ant-design/icons";
 import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
 
@@ -30,14 +30,6 @@ function ConfirmContent() {
 
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type");
-
-  const isRecovery = type === "recovery";
-  const title = isRecovery ? "Reset Your Password" : "You\u2019ve Been Invited!";
-  const subtitle = isRecovery
-    ? "Click below to continue resetting your password."
-    : "You\u2019ve been invited to join the O2 Trainer platform.";
-  const buttonText = isRecovery ? "Continue" : "Accept Invitation";
-  const buttonIcon = isRecovery ? <RedoOutlined /> : <CheckCircleOutlined />;
 
   async function handleVerify() {
     setLoading(true);
@@ -89,10 +81,10 @@ function ConfirmContent() {
       <Flex vertical align="center" gap={8} style={{ marginBottom: 40 }}>
         <Image src="/o2-logo.svg" alt="O2 Slovakia" width={80} height={53} priority />
         <Title level={2} style={{ margin: 0, marginTop: 8, fontWeight: 500, letterSpacing: "-0.3px", color: "#1a1a2e" }}>
-          {title}
+          Reset Your Password
         </Title>
         <Text style={{ color: "#9CA3AF", fontSize: 14, textAlign: "center" }}>
-          {subtitle}
+          Click below to continue resetting your password.
         </Text>
       </Flex>
 
@@ -109,7 +101,7 @@ function ConfirmContent() {
 
       <Button
         type="primary"
-        icon={buttonIcon}
+        icon={<RedoOutlined />}
         loading={loading}
         onClick={handleVerify}
         block
@@ -124,7 +116,7 @@ function ConfirmContent() {
           boxShadow: "0 4px 16px rgba(1, 18, 170, 0.3)",
         }}
       >
-        {buttonText}
+        Continue
       </Button>
 
       <Text

@@ -9,12 +9,25 @@ import ExportButton from "@/components/common/ExportButton";
 import UserTable from "@/components/users/UserTable";
 import UserForm from "@/components/users/UserForm";
 import { useAuth } from "@/contexts/AuthContext";
-import type { UserWithTeam, InviteUserPayload } from "@repo/shared";
+import type { UserWithTeam, InviteUserPayload, InvitationWithInviter } from "@repo/shared";
+
+export interface UserOrInvitation {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  role: string;
+  team: { name: string } | null;
+  team_id: string | null;
+  created_at: string;
+  type: "user" | "invitation";
+}
 
 export default function UsersPage() {
   const t = useTranslations('Users');
   const tCommon = useTranslations('Common');
   const [users, setUsers] = useState<UserWithTeam[]>([]);
+  const [invitations, setInvitations] = useState<InvitationWithInviter[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -26,20 +39,25 @@ export default function UsersPage() {
   const { user } = useAuth();
 
   useEffect(() => {
-    fetchUsers();
+    fetchData();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function fetchUsers() {
+  async function fetchData() {
     setLoading(true);
     try {
       const params = new URLSearchParams({ withTeam: "true" });
       if (user?.role === "team_manager" && user.teamId) {
         params.set("teamId", user.teamId);
       }
-      const res = await fetch(`/api/users?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch users");
-      const data = await res.json();
-      setUsers(data);
+      const [usersRes, invitationsRes] = await Promise.all([
+        fetch(`/api/users?${params}`),
+        fetch("/api/users?invitations=pending"),
+      ]);
+      if (!usersRes.ok) throw new Error("Failed to fetch users");
+      setUsers(await usersRes.json());
+      if (invitationsRes.ok) {
+        setInvitations(await invitationsRes.json());
+      }
     } catch {
       message.error(tCommon('messages.failedToLoadUsers'));
     } finally {
@@ -55,13 +73,16 @@ export default function UsersPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
       });
-      if (!res.ok) throw new Error("Failed to invite user");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Failed to invite user");
+      }
       message.success(tCommon('messages.userInvited'));
       setModalOpen(false);
       form.resetFields();
-      fetchUsers();
-    } catch {
-      message.error(tCommon('messages.failedToInviteUser'));
+      fetchData();
+    } catch (err) {
+      message.error((err as Error).message || tCommon('messages.failedToInviteUser'));
     } finally {
       setSubmitting(false);
     }
@@ -80,7 +101,7 @@ export default function UsersPage() {
       message.success(tCommon('messages.userUpdated'));
       setEditingUser(null);
       form.resetFields();
-      fetchUsers();
+      fetchData();
     } catch {
       message.error(tCommon('messages.failedToUpdateUser'));
     } finally {
@@ -88,13 +109,39 @@ export default function UsersPage() {
     }
   }
 
+  // Build unified list
+  const combined: UserOrInvitation[] = [
+    ...invitations.map((inv) => ({
+      id: inv.id,
+      name: inv.name,
+      email: inv.email,
+      phone: null,
+      role: inv.role,
+      team: inv.team,
+      team_id: inv.team_id,
+      created_at: inv.created_at,
+      type: "invitation" as const,
+    })),
+    ...users.map((u) => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      phone: u.phone,
+      role: u.role,
+      team: u.team,
+      team_id: u.team_id,
+      created_at: u.created_at,
+      type: "user" as const,
+    })),
+  ];
+
   const filtered = search
-    ? users.filter(
+    ? combined.filter(
         (u) =>
           u.name.toLowerCase().includes(search.toLowerCase()) ||
           u.email.toLowerCase().includes(search.toLowerCase())
       )
-    : users;
+    : combined;
 
   return (
     <>
@@ -130,29 +177,40 @@ export default function UsersPage() {
         data={filtered}
         loading={loading}
         onEdit={(editUser) => {
+          if (editUser.type === "invitation") return;
+          const original = users.find((u) => u.id === editUser.id);
+          if (!original) return;
           form.setFieldsValue({
-            name: editUser.name,
-            email: editUser.email,
-            phone: editUser.phone,
-            role: editUser.role,
-            team_id: editUser.team_id ?? undefined,
+            name: original.name,
+            email: original.email,
+            phone: original.phone,
+            role: original.role,
+            team_id: original.team_id ?? undefined,
           });
-          setEditingUser(editUser);
+          setEditingUser(original);
         }}
-        onDelete={async (u) => {
-          const res = await fetch(`/api/users/${u.id}`, { method: "DELETE" });
-          if (!res.ok) throw new Error("Failed to delete");
-          fetchUsers();
+        onDelete={async (item) => {
+          if (item.type === "invitation") {
+            // Cancel invitation
+            const res = await fetch(`/api/users?cancelInvitation=${item.id}`, {
+              method: "DELETE",
+            });
+            if (!res.ok) throw new Error("Failed to cancel invitation");
+          } else {
+            const res = await fetch(`/api/users/${item.id}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("Failed to delete");
+          }
+          fetchData();
         }}
-        onResendInvite={async (u) => {
+        onResendInvite={async (item) => {
           const res = await fetch("/api/users/invite", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              name: u.name,
-              email: u.email,
-              role: u.role,
-              team_id: u.team_id ?? undefined,
+              name: item.name,
+              email: item.email,
+              role: item.role,
+              team_id: item.team_id ?? undefined,
               resend: true,
             }),
           });

@@ -149,6 +149,7 @@
       "inviteResent": "Meghívó újraküldve",
       "userDeleted": "Felhasználó törölve",
       "failedToDeleteUser": "Nem sikerült törölni a felhasználót",
+      "invitationCancelled": "Meghívó törölve",
       "issueReported": "Hiba sikeresen bejelentve"
     },
     "fields": {
@@ -440,7 +441,8 @@
       "invited": "Meghívott"
     },
     "resendInvite": "Meghívó újraküldése",
-    "confirmDeleteUser": "Biztosan törölni szeretné ezt a felhasználót?"
+    "confirmDeleteUser": "Biztosan törölni szeretné ezt a felhasználót?",
+    "confirmCancelInvitation": "Biztosan törölni szeretné ezt a meghívót?"
   },
   "Teams": {
     "title": "Csapatok",
