@@ -192,7 +192,22 @@
     "callTypes": {
       "phoneCall": "Telefonhívás",
       "browserCall": "Böngészőhívás",
-      "shareLink": "Link megosztása"
+      "shareLink": "Link megosztása",
+      "callNow": "Hívás most",
+      "sendLink": "Link küldése"
+    },
+    "sendLink": {
+      "title": "Képzési link küldése",
+      "generating": "Képzési link generálása...",
+      "sendTo": "A képzési link a következő címre lesz küldve:",
+      "trainingUrl": "Képzési URL",
+      "linkCopied": "Link vágólapra másolva",
+      "failedToCopy": "Nem sikerült a link másolása",
+      "failedToGenerate": "Nem sikerült a képzési link generálása",
+      "emailSent": "Képzési email sikeresen elküldve",
+      "failedToSend": "Nem sikerült a képzési email küldése",
+      "emailSentSuccess": "Email sikeresen elküldve!",
+      "sendEmail": "Email küldése"
     },
     "scenarioTypes": {
       "frontline": "Frontline",

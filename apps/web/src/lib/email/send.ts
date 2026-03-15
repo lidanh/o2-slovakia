@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 import { buildInviteHtml } from "./templates/invite";
+import { buildTrainingHtml } from "./templates/training";
 
 let transporter: Transporter | null = null;
 
@@ -44,6 +45,25 @@ export async function sendInvitationEmail(
     from: process.env.SMTP_FROM || "O2 Trainer <noreply@o2trainer.sk>",
     to,
     subject: "You have been invited to O2 Trainer",
+    html,
+  });
+}
+
+export async function sendTrainingEmail(
+  to: string,
+  params: {
+    scenarioName: string;
+    difficultyName: string;
+    trainingUrl: string;
+    senderName: string;
+  }
+): Promise<void> {
+  const html = buildTrainingHtml(params);
+
+  await getTransporter().sendMail({
+    from: process.env.SMTP_FROM || "O2 Trainer <noreply@o2trainer.sk>",
+    to,
+    subject: `Training Assignment: ${params.scenarioName}`,
     html,
   });
 }

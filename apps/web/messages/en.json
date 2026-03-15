@@ -192,7 +192,22 @@
     "callTypes": {
       "phoneCall": "Phone Call",
       "browserCall": "Browser Call",
-      "shareLink": "Share a Link"
+      "shareLink": "Share a Link",
+      "callNow": "Call Now",
+      "sendLink": "Send Link"
+    },
+    "sendLink": {
+      "title": "Send Training Link",
+      "generating": "Generating training link...",
+      "sendTo": "Training link will be sent to:",
+      "trainingUrl": "Training URL",
+      "linkCopied": "Link copied to clipboard",
+      "failedToCopy": "Failed to copy link",
+      "failedToGenerate": "Failed to generate training link",
+      "emailSent": "Training email sent successfully",
+      "failedToSend": "Failed to send training email",
+      "emailSentSuccess": "Email sent successfully!",
+      "sendEmail": "Send Email"
     },
     "scenarioTypes": {
       "frontline": "Frontline",

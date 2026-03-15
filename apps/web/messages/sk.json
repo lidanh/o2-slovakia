@@ -192,7 +192,22 @@
     "callTypes": {
       "phoneCall": "Telefonický hovor",
       "browserCall": "Hovor cez prehliadač",
-      "shareLink": "Zdieľať odkaz"
+      "shareLink": "Zdieľať odkaz",
+      "callNow": "Zavolať teraz",
+      "sendLink": "Poslať odkaz"
+    },
+    "sendLink": {
+      "title": "Poslať tréningový odkaz",
+      "generating": "Generovanie tréningového odkazu...",
+      "sendTo": "Tréningový odkaz bude odoslaný na:",
+      "trainingUrl": "URL tréningu",
+      "linkCopied": "Odkaz skopírovaný do schránky",
+      "failedToCopy": "Nepodarilo sa skopírovať odkaz",
+      "failedToGenerate": "Nepodarilo sa vygenerovať tréningový odkaz",
+      "emailSent": "Tréningový email bol úspešne odoslaný",
+      "failedToSend": "Nepodarilo sa odoslať tréningový email",
+      "emailSentSuccess": "Email bol úspešne odoslaný!",
+      "sendEmail": "Odoslať email"
     },
     "scenarioTypes": {
       "frontline": "Frontline",

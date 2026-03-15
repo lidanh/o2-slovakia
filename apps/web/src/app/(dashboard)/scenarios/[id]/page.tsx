@@ -36,6 +36,7 @@ import ReactMarkdown from "react-markdown";
 import {useTranslations} from 'next-intl';
 import PageHeader from "@/components/common/PageHeader";
 import AddUsersDialog from "@/components/common/AddUsersDialog";
+import SendLinkDialog from "@/components/training/SendLinkDialog";
 import ScenarioForm from "@/components/scenarios/ScenarioForm";
 import type {
   ScenarioWithLevels,
@@ -73,6 +74,7 @@ export default function ScenarioDetailPage() {
   const [activeLevelId, setActiveLevelId] = useState<string | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [bulkLoading, setBulkLoading] = useState<string | null>(null);
+  const [sendLinkAssignment, setSendLinkAssignment] = useState<AssignmentWithDetails | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -267,16 +269,16 @@ export default function ScenarioDetailPage() {
               items: [
                 {
                   key: "phone",
-                  label: tCommon('callTypes.phoneCall'),
+                  label: tCommon('callTypes.callNow'),
                   icon: <PhoneOutlined />,
                   disabled: !r.user.phone,
                   onClick: () => confirmTriggerCall(r),
                 },
                 {
                   key: "browser",
-                  label: tCommon('callTypes.shareLink'),
+                  label: tCommon('callTypes.sendLink'),
                   icon: <LinkOutlined />,
-                  onClick: () => handleShareLink(r.id),
+                  onClick: () => setSendLinkAssignment(r),
                 },
               ],
             }}
@@ -724,6 +726,13 @@ export default function ScenarioDetailPage() {
           })}
         />
       </div>
+
+      {/* Send Link Dialog */}
+      <SendLinkDialog
+        open={!!sendLinkAssignment}
+        onClose={() => setSendLinkAssignment(null)}
+        assignment={sendLinkAssignment}
+      />
 
       {/* Add Users Dialog */}
       <AddUsersDialog
