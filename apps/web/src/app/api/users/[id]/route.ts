@@ -7,7 +7,7 @@ import type { UserRole } from "@repo/shared";
 const UpdateUserSchema = z.object({
   name: z.string().min(1).optional(),
   email: z.string().email().optional(),
-  phone: z.string().min(1).optional(),
+  phone: z.string().nullable().optional(),
   role: z.enum(["admin", "team_manager", "user"]).optional(),
   team_id: z.string().uuid().nullable().optional(),
 });
