@@ -99,7 +99,7 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 	serviceKey := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 	// 4a. Verify session is active
-	sessURL := fmt.Sprintf("%s/rest/v1/training_sessions?id=eq.%s&status=in.(initiated,in_progress)&select=id&limit=1",
+	sessURL := fmt.Sprintf("%s/rest/v1/training_sessions?id=eq.%s&status=in.(initiated,in_progress)&select=id,tenant_id&limit=1",
 		supabaseURL, url.QueryEscape(sessionID))
 	sessResp, err := supabaseGet(sessURL, serviceKey)
 	if err != nil {
@@ -108,38 +108,49 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var sessions []map[string]interface{}
+	var sessions []struct {
+		ID       string `json:"id"`
+		TenantID string `json:"tenant_id"`
+	}
 	if err := json.Unmarshal(sessResp, &sessions); err != nil || len(sessions) == 0 {
 		log.Printf("[ws-proxy] no active session found for %s", sessionID)
 		http.Error(w, "no active session", http.StatusForbidden)
 		return
 	}
 
-	// 4b. Fetch agent config
-	cfgURL := fmt.Sprintf("%s/rest/v1/agent_config?select=config&limit=1", supabaseURL)
+	tenantID := sessions[0].TenantID
+	if tenantID == "" {
+		log.Printf("[ws-proxy] session %s has no tenant_id", sessionID)
+		http.Error(w, "session missing tenant", http.StatusInternalServerError)
+		return
+	}
+
+	// 4b. Fetch tenant settings (wonderful config)
+	cfgURL := fmt.Sprintf("%s/rest/v1/tenants?id=eq.%s&select=settings&limit=1",
+		supabaseURL, url.QueryEscape(tenantID))
 	cfgResp, err := supabaseGet(cfgURL, serviceKey)
 	if err != nil {
-		log.Printf("[ws-proxy] agent config fetch failed: %v", err)
+		log.Printf("[ws-proxy] tenant settings fetch failed: %v", err)
 		http.Error(w, "config fetch failed", http.StatusBadGateway)
 		return
 	}
 
 	var cfgRows []struct {
-		Config struct {
+		Settings struct {
 			Wonderful struct {
 				APIKey    string `json:"api_key"`
 				TenantURL string `json:"tenant_url"`
 			} `json:"wonderful"`
-		} `json:"config"`
+		} `json:"settings"`
 	}
 	if err := json.Unmarshal(cfgResp, &cfgRows); err != nil || len(cfgRows) == 0 {
-		log.Printf("[ws-proxy] failed to parse agent config: %v", err)
+		log.Printf("[ws-proxy] failed to parse tenant settings: %v", err)
 		http.Error(w, "config parse failed", http.StatusInternalServerError)
 		return
 	}
 
-	apiKey := cfgRows[0].Config.Wonderful.APIKey
-	tenantURL := cfgRows[0].Config.Wonderful.TenantURL
+	apiKey := cfgRows[0].Settings.Wonderful.APIKey
+	tenantURL := cfgRows[0].Settings.Wonderful.TenantURL
 
 	// 5. Extract origin from tenant_url
 	parsed2, err := url.Parse(tenantURL)
