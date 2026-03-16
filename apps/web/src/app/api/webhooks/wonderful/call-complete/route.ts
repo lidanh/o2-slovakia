@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
 import { generateSessionFeedback } from "@/lib/feedback";
+import { resolveAgentAuth } from "@/lib/auth/agent-auth";
 
 const CallCompletePayload = z.object({
   communication_id: z.string(),
@@ -10,6 +11,14 @@ const CallCompletePayload = z.object({
 
 export async function POST(request: NextRequest) {
   console.log("[webhook/call-complete] Received call-complete webhook");
+
+  // Authenticate via per-tenant API key
+  const agentAuth = await resolveAgentAuth(request);
+  if (agentAuth.error) {
+    console.error("[webhook/call-complete] Unauthorized request");
+    return agentAuth.error;
+  }
+  const { tenantId } = agentAuth.auth;
 
   let body: z.infer<typeof CallCompletePayload>;
   try {
@@ -27,11 +36,12 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = createServiceClient();
 
-    // Look up session by session_id
+    // Look up session by session_id, scoped to tenant for defense-in-depth
     const { data: session, error: sessionError } = await supabase
       .from("training_sessions")
       .select("*")
       .eq("id", body.session_id)
+      .eq("tenant_id", tenantId)
       .single();
 
     if (sessionError || !session) {

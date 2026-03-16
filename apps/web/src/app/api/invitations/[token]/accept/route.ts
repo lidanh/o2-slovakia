@@ -4,7 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { createServerClient } from "@supabase/ssr";
 
 const AcceptSchema = z.object({
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters").optional(),
 });
 
 export async function POST(
@@ -52,38 +52,97 @@ export async function POST(
       return NextResponse.json({ error: "Invitation has expired" }, { status: 410 });
     }
 
-    // Create auth user
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: invitation.email,
-      password: parsed.data.password,
-      email_confirm: true,
-      app_metadata: { role: invitation.role },
-    });
-
-    if (authError) {
-      return NextResponse.json({ error: authError.message }, { status: 500 });
-    }
-
-    if (!authData.user) {
-      return NextResponse.json({ error: "Failed to create auth user" }, { status: 500 });
-    }
-
-    // Update users row created by the DB trigger with full invitation data
-    const { error: userError } = await supabase
+    // Check if user already exists (existing user joining new tenant)
+    const { data: existingUser } = await supabase
       .from("users")
-      .update({
-        name: invitation.name,
+      .select("id")
+      .eq("email", invitation.email)
+      .single();
+
+    let userId: string;
+    let isNewUser = false;
+
+    if (existingUser) {
+      // Existing user — just create membership, no password needed
+      userId = existingUser.id;
+
+      // Update user name if needed
+      await supabase
+        .from("users")
+        .update({ name: invitation.name })
+        .eq("id", userId);
+    } else {
+      // New user — require password
+      if (!parsed.data.password) {
+        return NextResponse.json({ error: "Password is required for new accounts" }, { status: 400 });
+      }
+
+      isNewUser = true;
+
+      // Create auth user
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: invitation.email,
+        password: parsed.data.password,
+        email_confirm: true,
+        app_metadata: {
+          role: invitation.role,
+          current_tenant_id: invitation.tenant_id,
+        },
+      });
+
+      if (authError) {
+        return NextResponse.json({ error: authError.message }, { status: 500 });
+      }
+
+      if (!authData.user) {
+        return NextResponse.json({ error: "Failed to create auth user" }, { status: 500 });
+      }
+
+      userId = authData.user.id;
+
+      // Update users row created by the DB trigger with full invitation data
+      const { error: userError } = await supabase
+        .from("users")
+        .update({
+          name: invitation.name,
+          email: invitation.email,
+        })
+        .eq("id", userId);
+
+      if (userError) {
+        await supabase.auth.admin.deleteUser(userId);
+        return NextResponse.json({ error: userError.message }, { status: 500 });
+      }
+    }
+
+    // Create tenant membership
+    const { error: membershipError } = await supabase
+      .from("tenant_memberships")
+      .insert({
+        tenant_id: invitation.tenant_id,
+        user_id: userId,
         role: invitation.role,
         team_id: invitation.team_id,
         invited_by: invitation.invited_by,
-      })
-      .eq("id", authData.user.id);
+      });
 
-    if (userError) {
-      await supabase.auth.admin.deleteUser(authData.user.id);
-      return NextResponse.json({ error: userError.message }, { status: 500 });
+    if (membershipError) {
+      // If user was just created, clean up
+      if (isNewUser) {
+        await supabase.auth.admin.deleteUser(userId);
+      }
+      return NextResponse.json({ error: membershipError.message }, { status: 500 });
     }
+
+    // Set current_tenant_id in app_metadata (spread existing to avoid clobbering)
+    const { data: { user: existingAuthUser } } = await supabase.auth.admin.getUserById(userId);
+    await supabase.auth.admin.updateUserById(userId, {
+      app_metadata: {
+        ...existingAuthUser?.app_metadata,
+        current_tenant_id: invitation.tenant_id,
+        role: invitation.role,
+      },
+    });
 
     // Mark invitation as accepted
     await supabase
@@ -99,37 +158,41 @@ export async function POST(
     const response = NextResponse.json({
       success: true,
       role: invitation.role,
+      isNewUser,
       redirectPath:
         invitation.role === "user" ? "/my-dashboard" : "/dashboard",
     });
 
-    const sessionClient = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll();
+    // Only sign in if we have a password (new user or existing user provided one)
+    if (parsed.data.password) {
+      const sessionClient = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            getAll() {
+              return request.cookies.getAll();
+            },
+            setAll(
+              cookiesToSet: {
+                name: string;
+                value: string;
+                options?: Record<string, unknown>;
+              }[]
+            ) {
+              cookiesToSet.forEach(({ name, value, options }) => {
+                response.cookies.set(name, value, options);
+              });
+            },
           },
-          setAll(
-            cookiesToSet: {
-              name: string;
-              value: string;
-              options?: Record<string, unknown>;
-            }[]
-          ) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              response.cookies.set(name, value, options);
-            });
-          },
-        },
-      }
-    );
+        }
+      );
 
-    await sessionClient.auth.signInWithPassword({
-      email: invitation.email,
-      password: parsed.data.password,
-    });
+      await sessionClient.auth.signInWithPassword({
+        email: invitation.email,
+        password: parsed.data.password,
+      });
+    }
 
     return response;
   } catch (err) {

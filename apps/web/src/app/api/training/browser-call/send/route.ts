@@ -35,14 +35,16 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createServiceClient();
+    const tenantId = auth.user.tenantId;
 
-    // Fetch assignment with user + scenario details
+    // Fetch assignment scoped to tenant
     const { data: assignment, error: aErr } = await supabase
       .from("assignments")
       .select(
         "*, user:users(*), scenario:scenarios(*, difficulty_levels:difficulty_levels(*)), difficulty_level:difficulty_levels(*)"
       )
       .eq("id", parsed.data.assignmentId)
+      .eq("tenant_id", tenantId)
       .single();
 
     if (aErr || !assignment) {
@@ -59,7 +61,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch the authenticated user's name (the sender)
     const { data: sender } = await supabase
       .from("users")
       .select("name")
@@ -68,13 +69,12 @@ export async function POST(request: NextRequest) {
 
     const senderName = sender?.name || "O2 Trainer Admin";
 
-    // Generate unique OTP and set 24h expiry
     const otp = await generateUniqueOtp();
     const otpExpiresAt = new Date(
       Date.now() + 24 * 60 * 60 * 1000
     ).toISOString();
 
-    // Create a training session
+    // Create session with tenant_id
     const { data: session, error: sErr } = await supabase
       .from("training_sessions")
       .insert({
@@ -86,6 +86,7 @@ export async function POST(request: NextRequest) {
         status: "initiated",
         otp,
         otp_expires_at: otpExpiresAt,
+        tenant_id: tenantId,
       })
       .select()
       .single();
@@ -97,7 +98,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Sign JWT for the call URL
     const token = await signBrowserCallToken({
       sessionId: session.id,
       userId: assignment.user_id,
@@ -106,13 +106,11 @@ export async function POST(request: NextRequest) {
       otp,
     });
 
-    // Mark assignment as in-progress
     await supabase
       .from("assignments")
       .update({ status: "in_progress" })
       .eq("id", assignment.id);
 
-    // Build the full training URL and send email
     const callUrl = `/call/${token}`;
     const fullUrl = `${getBaseUrl()}${callUrl}`;
 

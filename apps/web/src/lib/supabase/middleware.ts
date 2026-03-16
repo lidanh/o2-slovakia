@@ -39,11 +39,12 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Allow unauthenticated access to invite, reset-password, forgot-password
+  // Allow unauthenticated access to invite, reset-password, forgot-password, no-access
   if (
     pathname.startsWith("/invite") ||
     pathname.startsWith("/reset-password") ||
-    pathname.startsWith("/forgot-password")
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/no-access")
   ) {
     return supabaseResponse;
   }
@@ -53,7 +54,6 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = path;
     const response = NextResponse.redirect(url);
-    // Forward any cookies the Supabase client set (e.g. cleared/refreshed tokens)
     supabaseResponse.cookies.getAll().forEach((cookie) => {
       response.cookies.set(cookie.name, cookie.value, cookie);
     });
@@ -68,14 +68,60 @@ export async function updateSession(request: NextRequest) {
   // If user exists, apply role-based routing
   if (user) {
     const service = createServiceClient();
-    const { data: profile } = await service
-      .from("users")
-      .select("role")
-      .eq("id", user.id)
-      .single();
 
-    // Use role from DB (authoritative) with fallback to JWT metadata
-    const role = (profile?.role as UserRole) ?? (user.app_metadata?.role as UserRole) ?? "user";
+    // Read current_tenant_id from app_metadata
+    let currentTenantId = user.app_metadata?.current_tenant_id as string | undefined;
+    let role: UserRole = "user";
+
+    if (currentTenantId) {
+      // Fetch membership for current tenant
+      const { data: membership } = await service
+        .from("tenant_memberships")
+        .select("role, tenant:tenants!inner(is_active)")
+        .eq("user_id", user.id)
+        .eq("tenant_id", currentTenantId)
+        .eq("is_active", true)
+        .single();
+
+      if (membership && (membership.tenant as unknown as { is_active: boolean })?.is_active) {
+        role = membership.role as UserRole;
+      } else {
+        // Current tenant invalid — find another
+        currentTenantId = undefined;
+      }
+    }
+
+    if (!currentTenantId) {
+      // Find first active membership
+      const { data: firstMembership } = await service
+        .from("tenant_memberships")
+        .select("tenant_id, role, tenant:tenants!inner(is_active)")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .limit(1)
+        .single();
+
+      if (firstMembership && (firstMembership.tenant as unknown as { is_active: boolean })?.is_active) {
+        currentTenantId = firstMembership.tenant_id;
+        role = firstMembership.role as UserRole;
+
+        // Set current_tenant_id in app_metadata
+        await service.auth.admin.updateUserById(user.id, {
+          app_metadata: {
+            ...user.app_metadata,
+            current_tenant_id: currentTenantId,
+            role,
+          },
+        });
+      } else {
+        // No active tenant membership — redirect to no-access
+        if (!pathname.startsWith("/no-access")) {
+          return redirectTo("/no-access");
+        }
+        return supabaseResponse;
+      }
+    }
+
     const defaultRoute = DEFAULT_ROUTE[role];
 
     // If user is on login page, redirect to their default home
@@ -88,8 +134,8 @@ export async function updateSession(request: NextRequest) {
       return redirectTo(defaultRoute);
     }
 
-    // Check if user's role is allowed to access this route
-    if (!isRouteAllowed(pathname, role)) {
+    // Check if user's role/email is allowed to access this route
+    if (!isRouteAllowed(pathname, role, user.email)) {
       return redirectTo(defaultRoute);
     }
   }

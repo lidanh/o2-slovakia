@@ -1,4 +1,5 @@
-export function buildInviteHtml(inviterName: string, inviteUrl: string): string {
+export function buildInviteHtml(inviterName: string, inviteUrl: string, tenantName?: string): string {
+  const orgName = tenantName ?? "O2 Trainer";
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -27,9 +28,9 @@ export function buildInviteHtml(inviterName: string, inviteUrl: string): string 
           <!-- Body -->
           <tr>
             <td style="padding: 40px 40px 32px;">
-              <h1 style="margin: 0 0 12px; font-size: 22px; font-weight: 600; color: #1a1a2e; letter-spacing: -0.3px;">You've been invited</h1>
+              <h1 style="margin: 0 0 12px; font-size: 22px; font-weight: 600; color: #1a1a2e; letter-spacing: -0.3px;">You've been invited to ${escapeHtml(orgName)}</h1>
               <p style="margin: 0 0 28px; font-size: 15px; line-height: 1.6; color: #6B7280;">
-                ${escapeHtml(inviterName)} has invited you to join the O2 Trainer platform. Click the button below to set up your password and get started.
+                ${escapeHtml(inviterName)} has invited you to join <strong>${escapeHtml(orgName)}</strong> on the O2 Trainer platform. Click the button below to get started.
               </p>
               <!-- CTA Button -->
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">

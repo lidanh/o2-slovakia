@@ -37,14 +37,17 @@ function getTransporter(): Transporter {
 export async function sendInvitationEmail(
   to: string,
   inviterName: string,
-  inviteUrl: string
+  inviteUrl: string,
+  tenantName?: string
 ): Promise<void> {
-  const html = buildInviteHtml(inviterName, inviteUrl);
+  const html = buildInviteHtml(inviterName, inviteUrl, tenantName);
 
   await getTransporter().sendMail({
     from: process.env.SMTP_FROM || "O2 Trainer <noreply@o2trainer.sk>",
     to,
-    subject: "You have been invited to O2 Trainer",
+    subject: tenantName
+      ? `You have been invited to ${tenantName} on O2 Trainer`
+      : "You have been invited to O2 Trainer",
     html,
   });
 }

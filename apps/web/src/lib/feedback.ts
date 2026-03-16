@@ -37,14 +37,14 @@ export async function generateSessionFeedback(
     return { alreadyExists: true, success: true, feedback: null, session };
   }
 
-  // 3. Fetch Wonderful config from agent_config table
-  const { data: agentConfig } = await supabase
-    .from("agent_config")
-    .select("config")
-    .limit(1)
+  // 3. Fetch Wonderful config from tenant settings
+  const { data: tenant } = await supabase
+    .from("tenants")
+    .select("settings")
+    .eq("id", session.tenant_id)
     .single();
 
-  const wonderful = agentConfig?.config?.wonderful as
+  const wonderful = (tenant?.settings as Record<string, unknown>)?.wonderful as
     | { api_key?: string; tenant_url?: string }
     | undefined;
 
@@ -55,7 +55,6 @@ export async function generateSessionFeedback(
   if (session.communication_id && wonderful?.api_key && wonderful?.tenant_url) {
     try {
       const commData = await getCommunication(session.communication_id, wonderful);
-      // Wonderful API wraps response in { data: { ... }, status: 200 }
       const inner = (commData as { data?: Record<string, unknown> }).data ?? commData;
       const transcriptions = (inner as { transcriptions?: { id?: string; speaker?: string; text?: string; start_time?: number }[] }).transcriptions;
 

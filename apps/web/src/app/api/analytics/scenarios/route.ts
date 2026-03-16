@@ -8,21 +8,24 @@ export async function GET() {
     if (auth.error) return auth.error;
 
     const supabase = createServiceClient();
+    const tenantId = auth.user.tenantId;
     const teamIds = await getAccessibleTeamIds(auth.user);
 
-    // If team_manager, get user IDs in accessible teams
     let scopedUserIds: string[] | null = null;
     if (teamIds) {
-      const { data: teamUsers } = await supabase
-        .from("users")
-        .select("id")
+      const { data: memberships } = await supabase
+        .from("tenant_memberships")
+        .select("user_id")
+        .eq("tenant_id", tenantId)
+        .eq("is_active", true)
         .in("team_id", teamIds);
-      scopedUserIds = (teamUsers ?? []).map((u) => u.id);
+      scopedUserIds = (memberships ?? []).map((m) => m.user_id);
     }
 
     let sessionsQuery = supabase
       .from("training_sessions")
-      .select("scenario_id, scenario:scenarios(name), user_id");
+      .select("scenario_id, scenario:scenarios(name), user_id")
+      .eq("tenant_id", tenantId);
 
     if (scopedUserIds) {
       sessionsQuery = sessionsQuery.in("user_id", scopedUserIds);

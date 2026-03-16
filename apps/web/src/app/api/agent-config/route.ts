@@ -14,19 +14,22 @@ export async function GET() {
 
     const supabase = createServiceClient();
     const { data, error } = await supabase
-      .from("agent_config")
-      .select("*")
-      .limit(1)
+      .from("tenants")
+      .select("id, settings, created_at, updated_at")
+      .eq("id", auth.user.tenantId)
       .single();
 
     if (error) {
-      // If no config exists yet, return a default
-      if (error.code === "PGRST116") {
-        return NextResponse.json({ id: null, config: {}, created_at: null, updated_at: null });
-      }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-    return NextResponse.json(data);
+
+    // Return in backward-compatible format
+    return NextResponse.json({
+      id: data.id,
+      config: data.settings,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+    });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
@@ -44,34 +47,21 @@ export async function PUT(request: NextRequest) {
     }
 
     const supabase = createServiceClient();
-
-    // Check if a config row exists
-    const { data: existing } = await supabase
-      .from("agent_config")
-      .select("id")
-      .limit(1)
+    const { data, error } = await supabase
+      .from("tenants")
+      .update({ settings: parsed.data.config, updated_at: new Date().toISOString() })
+      .eq("id", auth.user.tenantId)
+      .select("id, settings, created_at, updated_at")
       .single();
 
-    if (existing) {
-      const { data, error } = await supabase
-        .from("agent_config")
-        .update({ config: parsed.data.config, updated_at: new Date().toISOString() })
-        .eq("id", existing.id)
-        .select()
-        .single();
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-      return NextResponse.json(data);
-    } else {
-      const { data, error } = await supabase
-        .from("agent_config")
-        .insert({ config: parsed.data.config })
-        .select()
-        .single();
-
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-      return NextResponse.json(data, { status: 201 });
-    }
+    return NextResponse.json({
+      id: data.id,
+      config: data.settings,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+    });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }

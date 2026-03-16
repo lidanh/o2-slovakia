@@ -62,20 +62,20 @@ export async function POST(request: NextRequest) {
     let callDuration: number | null = null;
 
     if (transcript.length === 0 && communicationId) {
-      const { data: agentConfig } = await supabase
-        .from("agent_config")
-        .select("config")
-        .limit(1)
+      // Get tenant settings for Wonderful config
+      const { data: tenant } = await supabase
+        .from("tenants")
+        .select("settings")
+        .eq("id", session.tenant_id)
         .single();
 
-      const wonderful = agentConfig?.config?.wonderful as
+      const wonderful = (tenant?.settings as Record<string, unknown>)?.wonderful as
         | { api_key?: string; tenant_url?: string }
         | undefined;
 
       if (wonderful?.api_key && wonderful?.tenant_url) {
         try {
           const commData = await getCommunication(communicationId, wonderful);
-          // Wonderful API wraps response in { data: { ... }, status: 200 }
           const inner = (commData as { data?: Record<string, unknown> }).data ?? commData;
           const transcriptions = (inner as { transcriptions?: { speaker?: string; text?: string; start_time?: number }[] }).transcriptions;
           if (Array.isArray(transcriptions)) {
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
       communication_id: communicationId,
       transcript,
       completed_at: new Date().toISOString(),
-      otp_expires_at: new Date().toISOString(), // invalidate OTP
+      otp_expires_at: new Date().toISOString(),
     };
     if (callDuration !== null) {
       sessionUpdate.call_duration = callDuration;
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate feedback (if transcript has content)
+    // Generate feedback
     let feedbackResult = null;
     let feedbackTranslations: FeedbackTranslations | null = null;
     if (transcript.length > 0) {
@@ -135,7 +135,6 @@ export async function POST(request: NextRequest) {
           scenarioPrompt
         );
 
-        // Translate feedback to SK/HU in parallel
         const [skResult, huResult] = await Promise.allSettled([
           translateFeedback(feedbackResult, "sk"),
           translateFeedback(feedbackResult, "hu"),
@@ -158,7 +157,6 @@ export async function POST(request: NextRequest) {
           })
           .eq("id", payload.sessionId);
       } catch (fbErr) {
-        // Feedback generation is non-critical -- session is still marked complete
         console.error("Feedback generation failed:", (fbErr as Error).message);
       }
     }
@@ -172,7 +170,6 @@ export async function POST(request: NextRequest) {
 
       if (assignErr) {
         console.error("Failed to update assignment status:", assignErr.message);
-        // Non-critical: session is already completed
       }
     }
 

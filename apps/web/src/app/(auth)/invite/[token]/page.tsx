@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import { Form, Input, Button, Typography, Alert, Flex, Spin, Tag } from "antd";
-import { LockOutlined, UserOutlined, TeamOutlined } from "@ant-design/icons";
+import { LockOutlined, UserOutlined, TeamOutlined, BankOutlined } from "@ant-design/icons";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
@@ -13,8 +13,10 @@ interface InvitationDetails {
   name: string;
   role: string;
   team_name: string | null;
+  tenant_name: string | null;
   inviter_name: string | null;
   expires_at: string;
+  existing_user: boolean;
 }
 
 function Card({ children }: { children: React.ReactNode }) {
@@ -78,8 +80,8 @@ export default function InviteTokenPage({
     verify();
   }, [token]);
 
-  async function handleSubmit(values: { password: string; confirm: string }) {
-    if (values.password !== values.confirm) {
+  async function handleSubmit(values?: { password?: string; confirm?: string }) {
+    if (values?.password && values?.confirm && values.password !== values.confirm) {
       setError("Passwords do not match");
       return;
     }
@@ -91,7 +93,7 @@ export default function InviteTokenPage({
       const res = await fetch(`/api/invitations/${token}/accept`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: values.password }),
+        body: JSON.stringify(values?.password ? { password: values.password } : {}),
       });
 
       const data = await res.json();
@@ -185,16 +187,21 @@ export default function InviteTokenPage({
             color: "#1a1a2e",
           }}
         >
-          You&apos;ve Been Invited
+          {invitation.existing_user ? "Join Organization" : "You've Been Invited"}
         </Title>
         <Text style={{ color: "#9CA3AF", fontSize: 14, textAlign: "center" }}>
           {invitation.inviter_name
-            ? `${invitation.inviter_name} invited you to join O2 Trainer.`
-            : "You've been invited to join O2 Trainer."}
+            ? `${invitation.inviter_name} invited you to join ${invitation.tenant_name ?? "O2 Trainer"}.`
+            : `You've been invited to join ${invitation.tenant_name ?? "O2 Trainer"}.`}
         </Text>
       </Flex>
 
       <Flex gap={8} wrap style={{ marginBottom: 24, justifyContent: "center" }}>
+        {invitation.tenant_name && (
+          <Tag icon={<BankOutlined />} color="purple">
+            {invitation.tenant_name}
+          </Tag>
+        )}
         <Tag icon={<UserOutlined />} color="blue">
           {ROLE_LABELS[invitation.role] || invitation.role}
         </Tag>
@@ -216,48 +223,17 @@ export default function InviteTokenPage({
         />
       )}
 
-      <Form
-        layout="vertical"
-        onFinish={handleSubmit}
-        autoComplete="off"
-        size="large"
-      >
-        <Form.Item label="Email">
-          <Input value={invitation.email} disabled />
-        </Form.Item>
-
-        <Form.Item
-          name="password"
-          rules={[
-            { required: true, message: "Please enter a password" },
-            { min: 8, message: "Password must be at least 8 characters" },
-          ]}
-        >
-          <Input.Password
-            prefix={<LockOutlined style={{ color: "#9CA3AF" }} />}
-            placeholder="New password"
-          />
-        </Form.Item>
-
-        <Form.Item
-          name="confirm"
-          rules={[
-            { required: true, message: "Please confirm your password" },
-          ]}
-        >
-          <Input.Password
-            prefix={<LockOutlined style={{ color: "#9CA3AF" }} />}
-            placeholder="Confirm password"
-          />
-        </Form.Item>
-
-        <Form.Item style={{ marginBottom: 0, marginTop: 12 }}>
+      {invitation.existing_user ? (
+        <>
+          <Text style={{ color: "#6B7280", fontSize: 14, textAlign: "center", display: "block", marginBottom: 24 }}>
+            You already have an account as <strong>{invitation.email}</strong>. Click below to join this organization.
+          </Text>
           <Button
             type="primary"
-            htmlType="submit"
             loading={submitting}
             block
             size="large"
+            onClick={() => handleSubmit()}
             style={{
               height: 48,
               fontWeight: 600,
@@ -268,10 +244,67 @@ export default function InviteTokenPage({
               boxShadow: "0 4px 16px rgba(1, 18, 170, 0.3)",
             }}
           >
-            Complete Setup
+            Join {invitation.tenant_name ?? "Organization"}
           </Button>
-        </Form.Item>
-      </Form>
+        </>
+      ) : (
+        <Form
+          layout="vertical"
+          onFinish={handleSubmit}
+          autoComplete="off"
+          size="large"
+        >
+          <Form.Item label="Email">
+            <Input value={invitation.email} disabled />
+          </Form.Item>
+
+          <Form.Item
+            name="password"
+            rules={[
+              { required: true, message: "Please enter a password" },
+              { min: 8, message: "Password must be at least 8 characters" },
+            ]}
+          >
+            <Input.Password
+              prefix={<LockOutlined style={{ color: "#9CA3AF" }} />}
+              placeholder="New password"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="confirm"
+            rules={[
+              { required: true, message: "Please confirm your password" },
+            ]}
+          >
+            <Input.Password
+              prefix={<LockOutlined style={{ color: "#9CA3AF" }} />}
+              placeholder="Confirm password"
+            />
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 0, marginTop: 12 }}>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={submitting}
+              block
+              size="large"
+              style={{
+                height: 48,
+                fontWeight: 600,
+                fontSize: 15,
+                borderRadius: 12,
+                background: "linear-gradient(135deg, #0112AA, #2563EB)",
+                border: "none",
+                boxShadow: "0 4px 16px rgba(1, 18, 170, 0.3)",
+              }}
+            >
+              Complete Setup
+            </Button>
+          </Form.Item>
+        </Form>
+      )}
 
       <Text
         style={{

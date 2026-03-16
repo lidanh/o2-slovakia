@@ -32,18 +32,30 @@ export async function GET(
     }
 
     const supabase = createServiceClient();
+    const tenantId = auth.user.tenantId;
 
-    const { data: team, error } = await supabase
+    const { error } = await supabase
       .from("teams")
-      .select("*, members:users(*)")
+      .select("id")
       .eq("id", id)
+      .eq("tenant_id", tenantId)
       .single();
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 404 });
     }
 
-    const members: Member[] = team.members ?? [];
+    // Get members via tenant_memberships (tenant-scoped)
+    const { data: memberships } = await supabase
+      .from("tenant_memberships")
+      .select("user_id, user:users(id, name)")
+      .eq("tenant_id", tenantId)
+      .eq("team_id", id)
+      .eq("is_active", true);
+
+    const members: Member[] = (memberships ?? [])
+      .map((m) => m.user as unknown as Member)
+      .filter(Boolean);
     const memberIds = members.map((m) => m.id);
 
     if (memberIds.length === 0) {
@@ -58,6 +70,7 @@ export async function GET(
     const { data: sessions } = await supabase
       .from("training_sessions")
       .select("user_id, score, status, created_at")
+      .eq("tenant_id", tenantId)
       .in("user_id", memberIds);
 
     const allSessions: Session[] = sessions ?? [];

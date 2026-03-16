@@ -1,25 +1,29 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { getAuthUser } from "@/lib/auth/authorize";
 import type { WonderfulAgent } from "@repo/shared";
 
 export async function GET() {
   try {
+    const auth = await getAuthUser();
+    if (auth.error) return auth.error;
+
     const supabase = createServiceClient();
 
-    const { data: agentConfig, error: cfgError } = await supabase
-      .from("agent_config")
-      .select("config")
-      .limit(1)
+    const { data: tenant, error: cfgError } = await supabase
+      .from("tenants")
+      .select("settings")
+      .eq("id", auth.user.tenantId)
       .single();
 
-    if (cfgError || !agentConfig) {
+    if (cfgError || !tenant) {
       return NextResponse.json(
-        { error: "Agent config not found", details: cfgError?.message ?? null },
+        { error: "Tenant settings not found", details: cfgError?.message ?? null },
         { status: 500 }
       );
     }
 
-    const wonderful = agentConfig.config.wonderful as {
+    const wonderful = (tenant.settings as Record<string, unknown>).wonderful as {
       tenant_url: string;
       api_key: string;
     } | undefined;

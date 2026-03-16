@@ -16,9 +16,11 @@ export async function GET() {
     if (auth.error) return auth.error;
 
     const supabase = createServiceClient();
-    const { data, error } = await supabase
+
+    // Fetch user profile
+    const { data: profile, error } = await supabase
       .from("users")
-      .select("*, team:teams(*)")
+      .select("*")
       .eq("id", auth.user.id)
       .single();
 
@@ -26,7 +28,50 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 404 });
     }
 
-    return NextResponse.json(data);
+    // Fetch all tenants for this user
+    const { data: memberships } = await supabase
+      .from("tenant_memberships")
+      .select("tenant_id, role, team_id, tenant:tenants!inner(id, name, slug, is_active)")
+      .eq("user_id", auth.user.id)
+      .eq("is_active", true);
+
+    const tenants = (memberships ?? [])
+      .filter((m) => (m.tenant as unknown as { is_active: boolean })?.is_active)
+      .map((m) => {
+        const t = m.tenant as unknown as { id: string; name: string; slug: string };
+        return {
+          id: t.id,
+          name: t.name,
+          slug: t.slug,
+          role: m.role,
+          team_id: m.team_id,
+          is_current: t.id === auth.user.tenantId,
+        };
+      });
+
+    const currentTenant = tenants.find((t) => t.id === auth.user.tenantId) ?? tenants[0] ?? null;
+
+    // Fetch team for current tenant membership
+    let team = null;
+    if (currentTenant?.team_id) {
+      const { data: teamData } = await supabase
+        .from("teams")
+        .select("*")
+        .eq("id", currentTenant.team_id)
+        .single();
+      team = teamData;
+    }
+
+    return NextResponse.json({
+      ...profile,
+      // Add membership-derived fields for backward compatibility
+      role: currentTenant?.role ?? "user",
+      team_id: currentTenant?.team_id ?? null,
+      team,
+      is_superadmin: profile.is_superadmin,
+      current_tenant: currentTenant,
+      tenants,
+    });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
@@ -45,7 +90,7 @@ export async function PUT(request: NextRequest) {
 
     const supabase = createServiceClient();
 
-    // Handle password update via admin API (browser can't reach Supabase directly behind proxy)
+    // Handle password update via admin API
     if (parsed.data.password) {
       const { error: pwError } = await supabase.auth.admin.updateUserById(auth.user.id, {
         password: parsed.data.password,
@@ -61,7 +106,7 @@ export async function PUT(request: NextRequest) {
       .from("users")
       .update({ ...profileFields, updated_at: new Date().toISOString() })
       .eq("id", auth.user.id)
-      .select("*, team:teams(*)")
+      .select("*")
       .single();
 
     if (error) {

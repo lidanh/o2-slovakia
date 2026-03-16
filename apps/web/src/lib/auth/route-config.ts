@@ -12,6 +12,7 @@ interface RouteRule {
 }
 
 const ROUTE_RULES: RouteRule[] = [
+  { pattern: "/backoffice", roles: [] }, // handled by email domain check, not role
   { pattern: "/settings", roles: ["admin"] },
   { pattern: "/scenarios", roles: ["admin"] },
   { pattern: "/users", roles: ["admin", "team_manager"] },
@@ -26,10 +27,17 @@ const ROUTE_RULES: RouteRule[] = [
 
 /**
  * Check if a role is allowed to access a given pathname.
+ * Special case: /backoffice requires @wonderful.ai email check (handled in middleware).
  * Returns true if no rule matches (permissive by default for unlisted routes).
  */
-export function isRouteAllowed(pathname: string, role: UserRole): boolean {
+export function isRouteAllowed(pathname: string, role: UserRole, email?: string): boolean {
   const rule = ROUTE_RULES.find((r) => pathname.startsWith(r.pattern));
-  if (!rule) return true; // no rule = allowed
+  if (!rule) return true;
+
+  // /backoffice is governed by email domain, not role
+  if (rule.pattern === "/backoffice") {
+    return !!email && email.endsWith("@wonderful.ai");
+  }
+
   return rule.roles.includes(role);
 }

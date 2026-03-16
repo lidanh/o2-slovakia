@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getCommunication } from "@/lib/wonderful";
+import { getAuthUser } from "@/lib/auth/authorize";
 import type { TranscriptEntry } from "@repo/shared";
 
 export async function GET(
@@ -8,15 +9,26 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await getAuthUser();
+    if (auth.error) return auth.error;
+
     const { id } = await params;
     const supabase = createServiceClient();
+    const tenantId = auth.user.tenantId;
+
     const { data, error } = await supabase
       .from("training_sessions")
       .select("*, user:users(*), scenario:scenarios(*), difficulty_level:difficulty_levels(*)")
       .eq("id", id)
+      .eq("tenant_id", tenantId)
       .single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 404 });
+
+    // Regular users can only view their own sessions
+    if (auth.user.role === "user" && data.user_id !== auth.user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     // Enrich transcript with transcription_ids if missing
     const transcript = data.transcript as TranscriptEntry[] | null;
@@ -26,12 +38,14 @@ export async function GET(
       !transcript.some((e) => e.transcription_id)
     ) {
       try {
-        const { data: agentConfig } = await supabase
-          .from("agent_config")
-          .select("config")
-          .limit(1)
+        // Get tenant settings for Wonderful config
+        const { data: tenant } = await supabase
+          .from("tenants")
+          .select("settings")
+          .eq("id", data.tenant_id)
           .single();
-        const wonderful = agentConfig?.config?.wonderful as
+
+        const wonderful = (tenant?.settings as Record<string, unknown>)?.wonderful as
           | { api_key?: string; tenant_url?: string }
           | undefined;
 

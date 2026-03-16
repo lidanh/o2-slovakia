@@ -33,6 +33,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("scenarios")
       .select("*, difficulty_levels(*)")
+      .eq("tenant_id", auth.user.tenantId)
       .order("created_at", { ascending: false });
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
 
     const { data: scenario, error } = await supabase
       .from("scenarios")
-      .insert(scenarioData)
+      .insert({ ...scenarioData, tenant_id: auth.user.tenantId })
       .select()
       .single();
 

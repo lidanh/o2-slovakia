@@ -25,13 +25,15 @@ export async function POST(req: Request) {
   }
 
   const supabase = createServiceClient();
-  const { data: agentConfig } = await supabase
-    .from("agent_config")
-    .select("config")
-    .limit(1)
+  const tenantId = auth.user.tenantId;
+
+  const { data: tenant } = await supabase
+    .from("tenants")
+    .select("settings")
+    .eq("id", tenantId)
     .single();
 
-  const wonderful = agentConfig?.config?.wonderful as
+  const wonderful = (tenant?.settings as Record<string, unknown>)?.wonderful as
     | { api_key?: string; tenant_url?: string }
     | undefined;
 

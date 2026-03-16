@@ -1,17 +1,38 @@
 -- ============================================================
--- O2 Slovakia — Seed Data
+-- O2 Slovakia — Seed Data (Multi-Tenant)
 -- ============================================================
 
--- Teams
-INSERT INTO teams (id, name, description) VALUES
-  ('a1000000-0000-0000-0000-000000000001', 'Sales Team Alpha', 'Primary sales team for internet products'),
-  ('a1000000-0000-0000-0000-000000000002', 'Sales Team Beta', 'Secondary sales team');
+-- Default tenant
+INSERT INTO tenants (id, name, slug, agent_api_key, settings) VALUES
+  ('b0000000-0000-0000-0000-000000000001', 'O2 Slovakia', 'o2-slovakia', 'wai_' || encode(extensions.gen_random_bytes(32), 'hex'), '{
+    "wonderful": {
+      "tenant_url": "",
+      "api_key": "",
+      "agent_id": "",
+      "twiml_url": "https://app.wonderful.ai/agent/{agent_id}/twiml"
+    },
+    "twilio": {
+      "account_sid": "",
+      "auth_token": "",
+      "status_callback_url": ""
+    },
+    "feedback": {
+      "model": "gpt-4o",
+      "max_tokens": 2000
+    }
+  }');
+
+-- Teams (now with tenant_id)
+INSERT INTO teams (id, tenant_id, name, description) VALUES
+  ('a1000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'Sales Team Alpha', 'Primary sales team for internet products'),
+  ('a1000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000001', 'Sales Team Beta', 'Secondary sales team');
 
 -- Note: Users are created through the invite flow (FK to auth.users required)
 
 -- Scenario 1: Internet Upsell Inbound (frontline)
-INSERT INTO scenarios (id, name, description, prompt, type, agent_id) VALUES
+INSERT INTO scenarios (id, tenant_id, name, description, prompt, type, agent_id) VALUES
   ('c1000000-0000-0000-0000-000000000001',
+   'b0000000-0000-0000-0000-000000000001',
    'Internet Upsell (Inbound)',
    'Practice transitioning from a resolved service request to selling O2 Internet and O2 TV on an inbound call.',
    '## Context
@@ -41,8 +62,9 @@ Sell O2 Internet and O2 TV after resolving the customer''s primary request, whil
    '6bab2049-52b3-4c1d-87e1-e4c05f471cd2');
 
 -- Scenario 2: Campaign Call Outbound (frontline)
-INSERT INTO scenarios (id, name, description, prompt, type, agent_id) VALUES
+INSERT INTO scenarios (id, tenant_id, name, description, prompt, type, agent_id) VALUES
   ('c1000000-0000-0000-0000-000000000002',
+   'b0000000-0000-0000-0000-000000000001',
    'Campaign Call (Outbound)',
    'Practice making proactive outbound sales calls for O2 Internet and O2 TV to customers who showed online interest.',
    '## Context
@@ -79,8 +101,9 @@ Sell O2 Internet and O2 TV through a proactive outbound campaign call.',
    '6bab2049-52b3-4c1d-87e1-e4c05f471cd2');
 
 -- Scenario 3: 1on1 Challenging Feedback (leadership)
-INSERT INTO scenarios (id, name, description, prompt, type, agent_id) VALUES
+INSERT INTO scenarios (id, tenant_id, name, description, prompt, type, agent_id) VALUES
   ('c1000000-0000-0000-0000-000000000003',
+   'b0000000-0000-0000-0000-000000000001',
    '1on1 Challenging Feedback',
    'Practice delivering constructive feedback to a team member with declining performance and agreeing on an improvement plan.',
    '## Context
@@ -169,23 +192,3 @@ INSERT INTO difficulty_levels (id, scenario_id, name, prompt, resistance_level, 
    'Hard',
    'You are highly defensive and feel unfairly singled out. You compare yourself to colleagues, question the metrics being used, and become emotional. You might threaten to look for another job. The manager needs exceptional emotional intelligence to handle this.',
    9, 8, 2, 3);
-
--- Agent config (singleton)
-INSERT INTO agent_config (id, config) VALUES
-  ('e1000000-0000-0000-0000-000000000001', '{
-    "wonderful": {
-      "tenant_url": "",
-      "api_key": "",
-      "agent_id": "",
-      "twiml_url": "https://app.wonderful.ai/agent/{agent_id}/twiml"
-    },
-    "twilio": {
-      "account_sid": "",
-      "auth_token": "",
-      "status_callback_url": ""
-    },
-    "feedback": {
-      "model": "gpt-4o",
-      "max_tokens": 2000
-    }
-  }');

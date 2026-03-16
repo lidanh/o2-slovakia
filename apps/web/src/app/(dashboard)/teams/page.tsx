@@ -14,6 +14,7 @@ interface TeamRow {
   name: string;
   description: string | null;
   parent_team_id: string | null;
+  tenant_id: string;
   created_at: string;
   updated_at: string;
   member_count?: number;

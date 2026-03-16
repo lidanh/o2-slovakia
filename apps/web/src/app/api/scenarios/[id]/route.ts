@@ -38,6 +38,7 @@ export async function GET(
       .from("scenarios")
       .select("*, difficulty_levels(*)")
       .eq("id", id)
+      .eq("tenant_id", auth.user.tenantId)
       .single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 404 });
@@ -68,7 +69,8 @@ export async function PUT(
     const { error } = await supabase
       .from("scenarios")
       .update({ ...scenarioData, updated_at: new Date().toISOString() })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("tenant_id", auth.user.tenantId);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
@@ -133,7 +135,7 @@ export async function DELETE(
 
     const { id } = await params;
     const supabase = createServiceClient();
-    const { error } = await supabase.from("scenarios").delete().eq("id", id);
+    const { error } = await supabase.from("scenarios").delete().eq("id", id).eq("tenant_id", auth.user.tenantId);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ success: true });
   } catch (err) {

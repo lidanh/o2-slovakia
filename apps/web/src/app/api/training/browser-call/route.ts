@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
 import { generateUniqueOtp } from "@/lib/otp";
 import { signBrowserCallToken } from "@/lib/jwt";
+import { getAuthUser } from "@/lib/auth/authorize";
 
 const BrowserCallSchema = z.object({
   assignmentId: z.string().uuid(),
@@ -10,6 +11,9 @@ const BrowserCallSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await getAuthUser();
+    if (auth.error) return auth.error;
+
     const body = await request.json().catch(() => null);
     if (!body) {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
@@ -22,12 +26,14 @@ export async function POST(request: NextRequest) {
 
     const supabase = createServiceClient();
     const { assignmentId } = parsed.data;
+    const tenantId = auth.user.tenantId;
 
-    // Fetch assignment with user, scenario, and difficulty_level
+    // Fetch assignment scoped to tenant
     const { data: assignment, error: aError } = await supabase
       .from("assignments")
       .select("*, user:users(*), scenario:scenarios(*), difficulty_level:difficulty_levels(*)")
       .eq("id", assignmentId)
+      .eq("tenant_id", tenantId)
       .single();
 
     if (aError || !assignment) {
@@ -44,7 +50,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate unique OTP
     let otp: string;
     try {
       otp = await generateUniqueOtp();
@@ -56,7 +61,7 @@ export async function POST(request: NextRequest) {
     }
     const otpExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-    // Create training session
+    // Create training session with tenant_id
     const { data: session, error: sError } = await supabase
       .from("training_sessions")
       .insert({
@@ -68,31 +73,19 @@ export async function POST(request: NextRequest) {
         call_type: "browser",
         otp,
         otp_expires_at: otpExpiresAt,
+        tenant_id: tenantId,
       })
       .select()
       .single();
 
     if (sError || !session) {
-      // Detect missing columns from unapplied migration
       const msg = sError?.message ?? "Unknown insert error";
-      const isMigrationIssue =
-        msg.includes("call_type") ||
-        msg.includes("otp") ||
-        msg.includes("otp_expires_at") ||
-        sError?.code === "42703";
-
       return NextResponse.json(
-        {
-          error: isMigrationIssue
-            ? "Database schema missing browser-call columns. Please run migration 00002_browser_call.sql."
-            : "Failed to create training session",
-          details: msg,
-        },
+        { error: "Failed to create training session", details: msg },
         { status: 500 }
       );
     }
 
-    // Sign JWT
     let token: string;
     try {
       token = await signBrowserCallToken({
@@ -109,7 +102,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update assignment status
     const { error: updateErr } = await supabase
       .from("assignments")
       .update({ status: "in_progress" })
@@ -117,7 +109,6 @@ export async function POST(request: NextRequest) {
 
     if (updateErr) {
       console.error("Failed to update assignment status:", updateErr.message);
-      // Non-critical: session was already created, so continue
     }
 
     const callUrl = `/call/${token}`;

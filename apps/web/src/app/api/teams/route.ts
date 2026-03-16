@@ -16,38 +16,55 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const withStats = searchParams.get("withStats") === "true";
+    const tenantId = auth.user.tenantId;
 
     const supabase = createServiceClient();
     const teamIds = await getAccessibleTeamIds(auth.user);
 
     let query = supabase
       .from("teams")
-      .select("*, members:users(*)")
+      .select("*")
+      .eq("tenant_id", tenantId)
       .order("created_at", { ascending: false });
 
     if (teamIds) {
       query = query.in("id", teamIds);
     }
 
-    const { data, error } = await query;
+    const { data: teams, error } = await query;
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+    // Get members via tenant_memberships
+    const teamIdList = (teams ?? []).map((t) => t.id);
+    const { data: memberships } = await supabase
+      .from("tenant_memberships")
+      .select("user_id, team_id")
+      .eq("tenant_id", tenantId)
+      .eq("is_active", true)
+      .in("team_id", teamIdList.length > 0 ? teamIdList : ["__none__"]);
+
+    // Group members by team
+    const membersByTeam = new Map<string, string[]>();
+    for (const m of memberships ?? []) {
+      if (!m.team_id) continue;
+      const arr = membersByTeam.get(m.team_id) ?? [];
+      arr.push(m.user_id);
+      membersByTeam.set(m.team_id, arr);
+    }
+
     if (!withStats) {
-      const teams = data.map((t) => ({
+      const result = (teams ?? []).map((t) => ({
         ...t,
-        member_count: t.members?.length ?? 0,
-        members: undefined,
+        member_count: membersByTeam.get(t.id)?.length ?? 0,
       }));
-      return NextResponse.json(teams);
+      return NextResponse.json(result);
     }
 
     // Collect all member IDs across all teams
     const allMemberIds: string[] = [];
-    for (const t of data) {
-      for (const m of t.members ?? []) {
-        allMemberIds.push(m.id);
-      }
+    for (const ids of membersByTeam.values()) {
+      allMemberIds.push(...ids);
     }
 
     // Batch-fetch all training sessions for all members
@@ -56,6 +73,7 @@ export async function GET(request: NextRequest) {
       const { data: sessions } = await supabase
         .from("training_sessions")
         .select("user_id, score, status")
+        .eq("tenant_id", tenantId)
         .in("user_id", allMemberIds);
       allSessions = sessions ?? [];
     }
@@ -68,13 +86,13 @@ export async function GET(request: NextRequest) {
       sessionsByUser.set(s.user_id, arr);
     }
 
-    const teams = data.map((t) => {
-      const members: { id: string }[] = t.members ?? [];
+    const result = (teams ?? []).map((t) => {
+      const memberIds = membersByTeam.get(t.id) ?? [];
       const memberAverages: number[] = [];
       let totalSessions = 0;
 
-      for (const m of members) {
-        const userSessions = sessionsByUser.get(m.id) ?? [];
+      for (const mId of memberIds) {
+        const userSessions = sessionsByUser.get(mId) ?? [];
         totalSessions += userSessions.length;
         const scored = userSessions
           .filter((s) => s.status === "completed" && isValidScore(s.score))
@@ -89,14 +107,13 @@ export async function GET(request: NextRequest) {
 
       return {
         ...t,
-        member_count: members.length,
-        members: undefined,
+        member_count: memberIds.length,
         avg_score: avgScore,
         total_sessions: totalSessions,
       };
     });
 
-    return NextResponse.json(teams);
+    return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
@@ -116,7 +133,7 @@ export async function POST(request: NextRequest) {
     const supabase = createServiceClient();
     const { data, error } = await supabase
       .from("teams")
-      .insert(parsed.data)
+      .insert({ ...parsed.data, tenant_id: auth.user.tenantId })
       .select()
       .single();
 

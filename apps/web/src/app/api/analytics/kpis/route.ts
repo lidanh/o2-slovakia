@@ -10,22 +10,24 @@ export async function GET() {
     if (auth.error) return auth.error;
 
     const supabase = createServiceClient();
+    const tenantId = auth.user.tenantId;
     const teamIds = await getAccessibleTeamIds(auth.user);
 
-    // If team_manager, get user IDs in accessible teams
     let scopedUserIds: string[] | null = null;
     if (teamIds) {
-      const { data: teamUsers } = await supabase
-        .from("users")
-        .select("id")
+      const { data: memberships } = await supabase
+        .from("tenant_memberships")
+        .select("user_id")
+        .eq("tenant_id", tenantId)
+        .eq("is_active", true)
         .in("team_id", teamIds);
-      scopedUserIds = (teamUsers ?? []).map((u) => u.id);
+      scopedUserIds = (memberships ?? []).map((m) => m.user_id);
     }
 
-    // Fetch sessions (scoped if needed)
     let sessionsQuery = supabase
       .from("training_sessions")
-      .select("id, user_id, score, call_duration, status, star_rating, created_at");
+      .select("id, user_id, score, call_duration, status, star_rating, created_at")
+      .eq("tenant_id", tenantId);
 
     if (scopedUserIds) {
       sessionsQuery = sessionsQuery.in("user_id", scopedUserIds);
@@ -35,7 +37,6 @@ export async function GET() {
 
     if (sError) return NextResponse.json({ error: sError.message }, { status: 500 });
 
-    // KPIs
     const totalSessions = sessions?.length ?? 0;
     const completedSessions = (sessions ?? []).filter((s) => s.status === "completed");
     const avgScore = computeAvgScore(sessions ?? []) ?? 0;
@@ -46,16 +47,20 @@ export async function GET() {
         : 0;
     const completionRate = totalSessions > 0 ? Math.round((completedSessions.length / totalSessions) * 100) : 0;
 
-    // Total users and active scenarios (scoped for team_manager)
-    let usersQuery = supabase.from("users").select("*", { count: "exact", head: true });
+    let usersQuery = supabase
+      .from("tenant_memberships")
+      .select("*", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .eq("is_active", true);
     if (scopedUserIds) {
-      usersQuery = usersQuery.in("id", scopedUserIds);
+      usersQuery = usersQuery.in("user_id", scopedUserIds);
     }
     const { count: totalUsers } = await usersQuery;
 
     const { count: activeScenarios } = await supabase
       .from("scenarios")
       .select("*", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
       .eq("is_active", true);
 
     const kpis: AnalyticsKPIs = {

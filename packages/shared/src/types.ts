@@ -2,8 +2,40 @@
 // Database Row Types
 // ============================================================
 
+export interface Tenant {
+  id: string;
+  name: string;
+  slug: string;
+  is_active: boolean;
+  settings: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TenantMembership {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  role: UserRole;
+  team_id: string | null;
+  invited_by: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TenantInfo {
+  id: string;
+  name: string;
+  slug: string;
+  role: UserRole;
+  team_id: string | null;
+  is_current: boolean;
+}
+
 export interface Team {
   id: string;
+  tenant_id: string;
   name: string;
   description: string | null;
   parent_team_id: string | null;
@@ -18,19 +50,18 @@ export interface User {
   name: string;
   email: string;
   phone: string | null;
-  role: UserRole;
-  team_id: string | null;
   avatar_url: string | null;
-  invited_by: string | null;
+  language: string;
+  is_superadmin: boolean;
   created_at: string;
   updated_at: string;
-  language: string;
 }
 
 export type InvitationStatus = "pending" | "accepted" | "expired" | "cancelled";
 
 export interface Invitation {
   id: string;
+  tenant_id: string;
   email: string;
   name: string;
   role: UserRole;
@@ -51,6 +82,7 @@ export interface InvitationWithInviter extends Invitation {
 
 export interface Scenario {
   id: string;
+  tenant_id: string;
   name: string;
   description: string | null;
   prompt: string;
@@ -84,6 +116,7 @@ export interface DifficultyLevel {
 
 export interface Assignment {
   id: string;
+  tenant_id: string;
   user_id: string;
   scenario_id: string;
   difficulty_level_id: string;
@@ -94,6 +127,7 @@ export interface Assignment {
 
 export interface TrainingSession {
   id: string;
+  tenant_id: string;
   user_id: string;
   scenario_id: string;
   difficulty_level_id: string | null;
@@ -119,13 +153,6 @@ export interface TrainingSession {
   completed_at: string | null;
   created_at: string;
   feedback_translations: FeedbackTranslations | null;
-  updated_at: string;
-}
-
-export interface AgentConfig {
-  id: string;
-  config: Record<string, unknown>;
-  created_at: string;
   updated_at: string;
 }
 
@@ -387,9 +414,14 @@ export interface LeaderboardEntry {
 // Joined / Extended Types (for UI)
 // ============================================================
 
-export interface UserWithTeam extends User {
+export interface UserWithMembership extends User {
+  role: UserRole;
+  team_id: string | null;
   team: Team | null;
 }
+
+// Backwards-compatible alias used by existing UI pages
+export type UserWithTeam = UserWithMembership;
 
 export interface AssignmentWithDetails extends Assignment {
   user: User;

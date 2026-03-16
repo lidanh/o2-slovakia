@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { generateFeedback } from "@/lib/llm";
 import { generateSessionFeedback } from "@/lib/feedback";
 import { translateFeedback } from "@/lib/evaluation/translate";
+import { getAuthUser } from "@/lib/auth/authorize";
 import type { TranscriptEntry, FeedbackTranslations } from "@repo/shared";
 
 const FeedbackSchema = z.object({
@@ -23,7 +24,11 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const auth = await getAuthUser();
+    if (auth.error) return auth.error;
+
     const { id } = await params;
+    const tenantId = auth.user.tenantId;
     const body = await request.json().catch(() => ({}));
     const parsed = FeedbackSchema.safeParse(body);
     if (!parsed.success) {
@@ -70,6 +75,7 @@ export async function POST(
       .from("training_sessions")
       .select("*, scenario:scenarios(*), difficulty_level:difficulty_levels(*)")
       .eq("id", id)
+      .eq("tenant_id", tenantId)
       .single();
 
     if (sessionErr || !session) {
@@ -120,7 +126,8 @@ export async function POST(
       await supabase
         .from("assignments")
         .update({ status: "completed" })
-        .eq("id", data.assignment_id);
+        .eq("id", data.assignment_id)
+        .eq("tenant_id", tenantId);
     }
 
     return NextResponse.json(data);

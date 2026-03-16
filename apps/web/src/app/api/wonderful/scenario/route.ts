@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
-
-function validateApiKey(request: NextRequest): boolean {
-  const apiKey = request.headers.get("X-API-Key");
-  return apiKey === process.env.AGENT_API_KEY;
-}
+import { resolveAgentAuth } from "@/lib/auth/agent-auth";
 
 export async function POST(request: NextRequest) {
   try {
-    if (!validateApiKey(request)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const agentAuth = await resolveAgentAuth(request);
+    if (agentAuth.error) return agentAuth.error;
+    const { tenantId } = agentAuth.auth;
 
     const body = await request.json();
     const phone = body.phone as string | undefined;
@@ -34,6 +30,7 @@ export async function POST(request: NextRequest) {
           difficulty_level:difficulty_levels(*)
         `)
         .eq("otp", otp)
+        .eq("tenant_id", tenantId)
         .gt("otp_expires_at", new Date().toISOString())
         .in("status", ["initiated", "in_progress"])
         .order("created_at", { ascending: false })
@@ -45,7 +42,7 @@ export async function POST(request: NextRequest) {
       }
       session = data;
     } else {
-      // Phone-based lookup (Twilio calls)
+      // Phone-based lookup (Twilio calls) — scoped to tenant
       const { data, error } = await supabase
         .from("training_sessions")
         .select(`
@@ -55,6 +52,7 @@ export async function POST(request: NextRequest) {
           difficulty_level:difficulty_levels(*)
         `)
         .eq("user.phone", phone!)
+        .eq("tenant_id", tenantId)
         .in("status", ["initiated", "ringing", "in_progress"])
         .order("created_at", { ascending: false })
         .limit(1)

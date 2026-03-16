@@ -17,7 +17,7 @@ export async function GET(
 
     const { data: invitation, error } = await supabase
       .from("invitations")
-      .select("*, team:teams(name)")
+      .select("*, team:teams(name), tenant:tenants(name)")
       .eq("invitation_token", token)
       .single();
 
@@ -41,7 +41,7 @@ export async function GET(
       );
     }
 
-    // Fetch inviter name separately (can't join invited_by FK via PostgREST)
+    // Fetch inviter name separately
     let inviterName: string | null = null;
     if (invitation.invited_by) {
       const { data: inviter } = await supabase
@@ -52,13 +52,22 @@ export async function GET(
       inviterName = inviter?.name ?? null;
     }
 
+    // Check if user already exists (for existing user flow)
+    const { data: existingUser } = await supabase
+      .from("users")
+      .select("id")
+      .eq("email", invitation.email)
+      .single();
+
     return NextResponse.json({
       email: invitation.email,
       name: invitation.name,
       role: invitation.role,
       team_name: invitation.team?.name ?? null,
+      tenant_name: invitation.tenant?.name ?? null,
       inviter_name: inviterName,
       expires_at: invitation.expires_at,
+      existing_user: !!existingUser,
     });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });

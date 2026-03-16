@@ -23,27 +23,31 @@ export async function GET(request: NextRequest) {
     const scenarioId = searchParams.get("scenarioId");
     const difficultyLevelId = searchParams.get("difficultyLevelId");
     const userId = searchParams.get("userId");
+    const tenantId = auth.user.tenantId;
 
     let query = supabase
       .from("assignments")
-      .select("*, user:users(*), scenario:scenarios(*), difficulty_level:difficulty_levels(*)");
+      .select("*, user:users(*), scenario:scenarios(*), difficulty_level:difficulty_levels(*)")
+      .eq("tenant_id", tenantId);
 
     if (scenarioId) query = query.eq("scenario_id", scenarioId);
     if (difficultyLevelId) query = query.eq("difficulty_level_id", difficultyLevelId);
     if (userId) query = query.eq("user_id", userId);
 
-    // Role-based scoping: admin=all, team_manager=own team, user=own only
+    // Role-based scoping
     if (auth.user.role === "user") {
       query = query.eq("user_id", auth.user.id);
     } else if (auth.user.role === "team_manager") {
       const teamIds = await getAccessibleTeamIds(auth.user);
       if (teamIds) {
-        const { data: teamUsers } = await supabase
-          .from("users")
-          .select("id")
+        const { data: teamMemberships } = await supabase
+          .from("tenant_memberships")
+          .select("user_id")
+          .eq("tenant_id", tenantId)
+          .eq("is_active", true)
           .in("team_id", teamIds);
-        const userIds = (teamUsers ?? []).map((u) => u.id);
-        query = query.in("user_id", userIds);
+        const userIds = (teamMemberships ?? []).map((m) => m.user_id);
+        query = query.in("user_id", userIds.length > 0 ? userIds : ["__none__"]);
       }
     }
 
@@ -73,16 +77,19 @@ export async function POST(request: NextRequest) {
 
     const supabase = createServiceClient();
     const { userIds, scenarioId, difficultyLevelId } = parsed.data;
+    const tenantId = auth.user.tenantId;
 
     // Team managers can only assign to users in their accessible teams
     if (auth.user.role === "team_manager") {
       const teamIds = await getAccessibleTeamIds(auth.user);
       if (teamIds) {
-        const { data: teamUsers } = await supabase
-          .from("users")
-          .select("id")
+        const { data: teamMemberships } = await supabase
+          .from("tenant_memberships")
+          .select("user_id")
+          .eq("tenant_id", tenantId)
+          .eq("is_active", true)
           .in("team_id", teamIds);
-        const allowedIds = new Set((teamUsers ?? []).map((u) => u.id));
+        const allowedIds = new Set((teamMemberships ?? []).map((m) => m.user_id));
         const forbidden = userIds.filter((uid) => !allowedIds.has(uid));
         if (forbidden.length > 0) {
           return NextResponse.json({ error: "Forbidden: cannot assign users outside your team" }, { status: 403 });
@@ -90,11 +97,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Verify scenario is active before creating assignments
+    // Verify scenario is active and belongs to tenant
     const { data: scenario, error: scenarioError } = await supabase
       .from("scenarios")
       .select("id, is_active")
       .eq("id", scenarioId)
+      .eq("tenant_id", tenantId)
       .single();
 
     if (scenarioError || !scenario) {
@@ -111,6 +119,7 @@ export async function POST(request: NextRequest) {
       difficulty_level_id: difficultyLevelId,
       status: "pending" as const,
       assigned_by: auth.user.id,
+      tenant_id: tenantId,
     }));
 
     const { data, error } = await supabase
@@ -141,20 +150,24 @@ export async function DELETE(request: NextRequest) {
     }
 
     const supabase = createServiceClient();
+    const tenantId = auth.user.tenantId;
 
     // Team managers can only delete assignments for their team users
     if (auth.user.role === "team_manager") {
       const teamIds = await getAccessibleTeamIds(auth.user);
       if (teamIds) {
-        const { data: teamUsers } = await supabase
-          .from("users")
-          .select("id")
+        const { data: teamMemberships } = await supabase
+          .from("tenant_memberships")
+          .select("user_id")
+          .eq("tenant_id", tenantId)
+          .eq("is_active", true)
           .in("team_id", teamIds);
-        const allowedIds = new Set((teamUsers ?? []).map((u) => u.id));
+        const allowedIds = new Set((teamMemberships ?? []).map((m) => m.user_id));
 
         const { data: assignments } = await supabase
           .from("assignments")
           .select("id, user_id")
+          .eq("tenant_id", tenantId)
           .in("id", parsed.data.assignmentIds);
 
         const forbidden = (assignments ?? []).filter((a) => !allowedIds.has(a.user_id));
@@ -167,6 +180,7 @@ export async function DELETE(request: NextRequest) {
     const { error } = await supabase
       .from("assignments")
       .delete()
+      .eq("tenant_id", tenantId)
       .in("id", parsed.data.assignmentIds);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

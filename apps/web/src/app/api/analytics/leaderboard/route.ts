@@ -11,21 +11,24 @@ export async function GET(request: NextRequest) {
 
     const limit = Number(request.nextUrl.searchParams.get("limit")) || 10;
     const supabase = createServiceClient();
+    const tenantId = auth.user.tenantId;
     const teamIds = await getAccessibleTeamIds(auth.user);
 
-    // If team_manager, get user IDs in accessible teams
     let scopedUserIds: string[] | null = null;
     if (teamIds) {
-      const { data: teamUsers } = await supabase
-        .from("users")
-        .select("id")
+      const { data: memberships } = await supabase
+        .from("tenant_memberships")
+        .select("user_id")
+        .eq("tenant_id", tenantId)
+        .eq("is_active", true)
         .in("team_id", teamIds);
-      scopedUserIds = (teamUsers ?? []).map((u) => u.id);
+      scopedUserIds = (memberships ?? []).map((m) => m.user_id);
     }
 
     let sessionsQuery = supabase
       .from("training_sessions")
       .select("user_id, score, star_rating, status")
+      .eq("tenant_id", tenantId)
       .eq("status", "completed");
 
     if (scopedUserIds) {
@@ -36,17 +39,32 @@ export async function GET(request: NextRequest) {
 
     if (sError) return NextResponse.json({ error: sError.message }, { status: 500 });
 
-    let usersQuery = supabase.from("users").select("id, name, team:teams(name)");
+    // Get users and team info via memberships
+    let membershipQuery = supabase
+      .from("tenant_memberships")
+      .select("user_id, team_id")
+      .eq("tenant_id", tenantId)
+      .eq("is_active", true);
     if (scopedUserIds) {
-      usersQuery = usersQuery.in("id", scopedUserIds);
+      membershipQuery = membershipQuery.in("user_id", scopedUserIds);
     }
-    const { data: users } = await usersQuery;
+    const { data: memberships } = await membershipQuery;
+    const memberUserIds = (memberships ?? []).map((m) => m.user_id);
+    const membershipMap = new Map((memberships ?? []).map((m) => [m.user_id, m.team_id]));
+
+    let users: Record<string, unknown>[] = [];
+    if (memberUserIds.length > 0) {
+      const { data: usersData } = await supabase.from("users").select("id, name").in("id", memberUserIds);
+      users = usersData ?? [];
+    }
+
+    const { data: teams } = await supabase.from("teams").select("id, name").eq("tenant_id", tenantId);
+    const teamNameMap = new Map((teams ?? []).map((t) => [t.id, t.name]));
 
     const userMap = new Map(
-      (users ?? []).map((u: Record<string, unknown>) => {
-        const team = u.team as { name: string } | { name: string }[] | null;
-        const teamName = Array.isArray(team) ? team[0]?.name ?? null : team?.name ?? null;
-        return [u.id as string, { name: u.name as string, team_name: teamName }];
+      users.map((u) => {
+        const teamId = membershipMap.get(u.id as string);
+        return [u.id as string, { name: u.name as string, team_name: teamId ? teamNameMap.get(teamId) ?? null : null }];
       })
     );
 

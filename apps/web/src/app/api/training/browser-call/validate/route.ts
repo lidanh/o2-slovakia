@@ -41,21 +41,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Session OTP has expired" }, { status: 410 });
     }
 
-    // Fetch agent config
-    const { data: agentConfig, error: cfgError } = await supabase
-      .from("agent_config")
-      .select("config")
-      .limit(1)
+    // Fetch tenant settings for agent config
+    const { data: tenant, error: cfgError } = await supabase
+      .from("tenants")
+      .select("settings")
+      .eq("id", session.tenant_id)
       .single();
 
-    if (cfgError || !agentConfig) {
+    if (cfgError || !tenant) {
       return NextResponse.json(
-        { error: "Agent config not found", details: cfgError?.message ?? null },
+        { error: "Tenant settings not found", details: cfgError?.message ?? null },
         { status: 500 }
       );
     }
 
-    const wonderful = agentConfig.config.wonderful as {
+    const wonderful = (tenant.settings as Record<string, unknown>).wonderful as {
       agent_id: string;
       api_key: string;
       tenant_url: string;

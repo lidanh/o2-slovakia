@@ -12,10 +12,12 @@ import {
   TrophyOutlined,
   SettingOutlined,
   IdcardOutlined,
+  ControlOutlined,
 } from "@ant-design/icons";
 import { usePathname, useRouter } from "next/navigation";
 import type { MenuProps } from "antd";
 import { useAuth } from "@/contexts/AuthContext";
+import TenantSwitcher from "@/components/common/TenantSwitcher";
 import type { UserRole } from "@repo/shared";
 import {useTranslations} from 'next-intl';
 
@@ -182,7 +184,7 @@ export default function Sidebar() {
               textTransform: "uppercase" as const,
             }}
           >
-            {t('appOrg')}
+            {user?.currentTenant?.name ?? t('appOrg')}
           </span>
         </div>
       </div>
@@ -196,6 +198,9 @@ export default function Sidebar() {
           margin: "0 20px 8px",
         }}
       />
+
+      {/* Tenant Switcher (multi-tenant) */}
+      <TenantSwitcher />
 
       <Menu
         theme="dark"
@@ -211,6 +216,27 @@ export default function Sidebar() {
           fontSize: 15,
         }}
       />
+
+      {/* Backoffice link for superadmins */}
+      {user?.isSuperadmin && (
+        <Menu
+          theme="dark"
+          mode="inline"
+          selectedKeys={pathname.startsWith("/backoffice") ? ["/backoffice"] : []}
+          items={[
+            { key: "/backoffice", icon: <ControlOutlined />, label: "Backoffice" },
+          ]}
+          onClick={({ key }) => router.push(key)}
+          style={{
+            background: "transparent",
+            borderRight: 0,
+            padding: "0 4px",
+            fontSize: 15,
+            marginTop: 8,
+            borderTop: "1px solid rgba(255,255,255,0.08)",
+          }}
+        />
+      )}
 
       {/* Bottom fade */}
       <div

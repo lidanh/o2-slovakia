@@ -17,12 +17,14 @@ export async function GET(request: NextRequest) {
 
     const supabase = createServiceClient();
     const { searchParams } = new URL(request.url);
+    const tenantId = auth.user.tenantId;
 
     // Return pending invitations instead of users
     if (searchParams.get("invitations") === "pending") {
       let query = supabase
         .from("invitations")
         .select("*, team:teams(*)")
+        .eq("tenant_id", tenantId)
         .eq("status", "pending")
         .order("created_at", { ascending: false });
 
@@ -38,22 +40,56 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(data);
     }
 
-    // Default: return users
+    // Default: return users in this tenant via memberships
     const teamIds = await getAccessibleTeamIds(auth.user);
 
-    let query = supabase
-      .from("users")
-      .select("*, team:teams(*)")
-      .order("created_at", { ascending: false });
+    // Get user IDs that belong to this tenant
+    let membershipQuery = supabase
+      .from("tenant_memberships")
+      .select("user_id, role, team_id")
+      .eq("tenant_id", tenantId)
+      .eq("is_active", true);
 
     if (teamIds) {
-      query = query.in("team_id", teamIds);
+      membershipQuery = membershipQuery.in("team_id", teamIds);
     }
 
-    const { data, error } = await query;
+    const { data: memberships } = await membershipQuery;
+    const userIds = (memberships ?? []).map((m) => m.user_id);
+
+    if (userIds.length === 0) {
+      return NextResponse.json([]);
+    }
+
+    const { data: users, error } = await supabase
+      .from("users")
+      .select("*")
+      .in("id", userIds)
+      .order("created_at", { ascending: false });
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json(data);
+
+    // Merge membership data into user objects for backward compatibility
+    const membershipMap = new Map((memberships ?? []).map((m) => [m.user_id, m]));
+
+    // Fetch teams for this tenant
+    const { data: teams } = await supabase
+      .from("teams")
+      .select("*")
+      .eq("tenant_id", tenantId);
+    const teamMap = new Map((teams ?? []).map((t) => [t.id, t]));
+
+    const enriched = (users ?? []).map((u) => {
+      const m = membershipMap.get(u.id);
+      return {
+        ...u,
+        role: m?.role ?? "user",
+        team_id: m?.team_id ?? null,
+        team: m?.team_id ? teamMap.get(m.team_id) ?? null : null,
+      };
+    });
+
+    return NextResponse.json(enriched);
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
@@ -76,6 +112,7 @@ export async function DELETE(request: NextRequest) {
       .from("invitations")
       .update({ status: "cancelled", updated_at: new Date().toISOString() })
       .eq("id", invitationId)
+      .eq("tenant_id", auth.user.tenantId)
       .eq("status", "pending");
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -100,7 +137,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase
       .from("users")
       .insert(parsed.data)
-      .select("*, team:teams(*)")
+      .select("*")
       .single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

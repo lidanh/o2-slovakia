@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { generateGuidance } from "@/lib/llm";
+import { resolveAgentAuth } from "@/lib/auth/agent-auth";
 
 const GuidanceSchema = z.object({
   communication_id: z.string().min(1),
@@ -13,16 +14,10 @@ const GuidanceSchema = z.object({
   ),
 });
 
-function validateApiKey(request: NextRequest): boolean {
-  const apiKey = request.headers.get("X-API-Key");
-  return apiKey === process.env.AGENT_API_KEY;
-}
-
 export async function POST(request: NextRequest) {
   try {
-    if (!validateApiKey(request)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const agentAuth = await resolveAgentAuth(request);
+    if (agentAuth.error) return agentAuth.error;
 
     const body = await request.json();
     const parsed = GuidanceSchema.safeParse(body);
