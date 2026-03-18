@@ -2,6 +2,87 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { resolveAgentAuth } from "@/lib/auth/agent-auth";
 
+interface DifficultyParams {
+  resistance_level: number;
+  emotional_intensity: number;
+  cooperation: number;
+}
+
+/**
+ * Translate numeric difficulty parameters (1-10 scale) into explicit
+ * behavioral instructions for the AI persona so it respects the
+ * intended difficulty of the training session.
+ */
+function buildBehaviorDirectives(params: DifficultyParams): string {
+  const { resistance_level, emotional_intensity, cooperation } = params;
+  const lines: string[] = [];
+
+  lines.push("--- BEHAVIORAL DIRECTIVES (based on difficulty settings) ---");
+
+  // Resistance: how hard the persona pushes back / refuses to be persuaded
+  if (resistance_level >= 8) {
+    lines.push(
+      "RESISTANCE (very high): You are extremely difficult to persuade. Reject initial offers firmly. " +
+      "Do NOT suggest solutions or hint at what would satisfy you — make the trainee work hard to uncover your needs. " +
+      "Only concede after the trainee has demonstrated genuine empathy and offered a concrete, compelling resolution."
+    );
+  } else if (resistance_level >= 5) {
+    lines.push(
+      "RESISTANCE (moderate): You are skeptical but open to good arguments. " +
+      "Push back on weak offers but respond positively when the trainee addresses your core concern. " +
+      "Do not volunteer solutions, but acknowledge good suggestions when offered."
+    );
+  } else {
+    lines.push(
+      "RESISTANCE (low): You are relatively open and willing to cooperate. " +
+      "Voice your concern but accept reasonable solutions without much pushback."
+    );
+  }
+
+  // Emotional intensity: how emotionally charged the persona is
+  if (emotional_intensity >= 8) {
+    lines.push(
+      "EMOTION (very high): You are visibly upset, frustrated, or angry. Express strong emotions. " +
+      "Do not calm down easily — the trainee must actively de-escalate before you engage constructively."
+    );
+  } else if (emotional_intensity >= 5) {
+    lines.push(
+      "EMOTION (moderate): You are noticeably dissatisfied but not hostile. " +
+      "Show frustration when your concerns are dismissed, but respond to empathy."
+    );
+  } else {
+    lines.push(
+      "EMOTION (low): You are calm and matter-of-fact. " +
+      "State your issue clearly without strong emotional language."
+    );
+  }
+
+  // Cooperation: how much the persona helps steer the conversation
+  if (cooperation <= 3) {
+    lines.push(
+      "COOPERATION (very low): Do NOT help the trainee. Give short, vague answers. " +
+      "Do NOT proactively offer information about what you want. Do NOT hint at solutions. " +
+      "Do NOT signal interest in competing offers or mention switching providers. " +
+      "The trainee must ask the right questions to extract your needs."
+    );
+  } else if (cooperation <= 6) {
+    lines.push(
+      "COOPERATION (moderate): Answer direct questions honestly but do not volunteer extra information. " +
+      "Do not proactively guide the conversation toward any outcome. " +
+      "Let the trainee lead the discovery process."
+    );
+  } else {
+    lines.push(
+      "COOPERATION (high): Be forthcoming with information. " +
+      "Clearly explain your situation, what bothers you, and what kind of solution you are looking for. " +
+      "Help the trainee understand your needs."
+    );
+  }
+
+  lines.push("--- END BEHAVIORAL DIRECTIVES ---");
+  return lines.join("\n");
+}
+
 export async function POST(request: NextRequest) {
   try {
     const agentAuth = await resolveAgentAuth(request);
@@ -67,13 +148,21 @@ export async function POST(request: NextRequest) {
     const scenario = session.scenario;
     const difficultyLevel = session.difficulty_level;
 
+    const basePrompt = difficultyLevel
+      ? `${scenario.prompt}\n\n${difficultyLevel.prompt}`
+      : scenario.prompt;
+
+    const behaviorDirectives = difficultyLevel
+      ? buildBehaviorDirectives(difficultyLevel)
+      : "";
+
     const response = {
       session_id: session.id,
       user_id: session.user_id,
       scenario_id: session.scenario_id,
-      prompt: difficultyLevel
-        ? `${scenario.prompt}\n\n${difficultyLevel.prompt}`
-        : scenario.prompt,
+      prompt: behaviorDirectives
+        ? `${basePrompt}\n\n${behaviorDirectives}`
+        : basePrompt,
       resistance_level: difficultyLevel?.resistance_level ?? 50,
       emotional_intensity: difficultyLevel?.emotional_intensity ?? 50,
       cooperation: difficultyLevel?.cooperation ?? 50,
