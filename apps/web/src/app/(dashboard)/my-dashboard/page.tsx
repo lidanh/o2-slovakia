@@ -207,7 +207,8 @@ export default function MyDashboardPage() {
                   <CallTriggerButton
                     assignmentId={a.id}
                     selfService
-                    disabled={a.status === "completed"}
+                    isCompleted={a.status === "completed"}
+                    phoneDisabled={!user?.phone}
                   />
                 </div>
               </Card>

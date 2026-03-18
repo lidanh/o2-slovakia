@@ -57,9 +57,7 @@ export default function MyTrainingPage() {
     fetchData();
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const pendingAssignments = assignments.filter(
-    (a) => a.status === "pending" || a.status === "in_progress"
-  );
+  const activeAssignments = assignments;
 
   if (!user) return <Spin size="large" style={{ display: "block", margin: "100px auto" }} />;
 
@@ -67,9 +65,9 @@ export default function MyTrainingPage() {
     <>
       {loading ? (
         <Spin style={{ display: "block", margin: "40px auto" }} />
-      ) : pendingAssignments.length > 0 ? (
+      ) : activeAssignments.length > 0 ? (
         <Row gutter={[16, 16]}>
-          {pendingAssignments.map((a) => (
+          {activeAssignments.map((a) => (
             <Col xs={24} sm={12} lg={8} key={a.id}>
               <Card variant="borderless" styles={{ body: { padding: 20 } }}>
                 <Text strong style={{ fontSize: 15, display: "block", marginBottom: 4 }}>
@@ -85,7 +83,8 @@ export default function MyTrainingPage() {
                   <CallTriggerButton
                     assignmentId={a.id}
                     selfService
-                    disabled={a.status === "completed"}
+                    isCompleted={a.status === "completed"}
+                    phoneDisabled={!user.phone}
                   />
                 </div>
               </Card>
@@ -203,9 +202,9 @@ export default function MyTrainingPage() {
               label: (
                 <span>
                   <BookOutlined /> {t('assignedTab')}{" "}
-                  {pendingAssignments.length > 0 && (
+                  {activeAssignments.length > 0 && (
                     <Tag color="blue" style={{ marginLeft: 4, fontSize: 11 }}>
-                      {pendingAssignments.length}
+                      {activeAssignments.length}
                     </Tag>
                   )}
                 </span>

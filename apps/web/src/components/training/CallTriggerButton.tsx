@@ -10,6 +10,10 @@ interface CallTriggerButtonProps {
   disabled?: boolean;
   /** When true, browser call navigates to the call page instead of copying a link */
   selfService?: boolean;
+  /** Whether this is a completed assignment (shows "Retrain" instead of "Train") */
+  isCompleted?: boolean;
+  /** Disable the phone call option (e.g. when user has no phone number) */
+  phoneDisabled?: boolean;
   onSuccess?: () => void;
 }
 
@@ -17,9 +21,12 @@ export default function CallTriggerButton({
   assignmentId,
   disabled,
   selfService,
+  isCompleted,
+  phoneDisabled,
   onSuccess,
 }: CallTriggerButtonProps) {
   const t = useTranslations('Training');
+  const tCommon = useTranslations('Common');
   const [loading, setLoading] = useState(false);
   const { message } = App.useApp();
 
@@ -72,13 +79,14 @@ export default function CallTriggerButton({
         items: [
           {
             key: "phone",
-            label: t('callTrigger.phoneCall'),
+            label: tCommon('callTypes.callNow'),
             icon: <PhoneOutlined />,
+            disabled: phoneDisabled,
             onClick: handlePhoneCall,
           },
           {
             key: "browser",
-            label: selfService ? t('callTrigger.browserCall') : t('callTrigger.shareLink'),
+            label: selfService ? t('callTrigger.browserCall') : tCommon('callTypes.sendLink'),
             icon: <LinkOutlined />,
             onClick: handleBrowserCall,
           },
@@ -92,7 +100,7 @@ export default function CallTriggerButton({
         loading={loading}
         disabled={disabled}
       >
-        {t('callTrigger.startTraining')} <DownOutlined />
+        {isCompleted ? t('retrain') : t('train')} <DownOutlined style={{ fontSize: 10 }} />
       </Button>
     </Dropdown>
   );
