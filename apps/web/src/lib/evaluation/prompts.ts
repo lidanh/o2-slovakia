@@ -70,7 +70,7 @@ IMPORTANT per-item output rules:
 
 Also identify:
 - **highlights**: Specific positive or negative moments related to this category
-- **suggestions**: Actionable improvement suggestions for this category (1-3 suggestions max)
+- **suggestions**: Actionable improvement suggestions for this category (1-3 suggestions max). IMPORTANT: If ANY item scored "failed" or "partially_passed", you MUST provide at least 1 suggestion. Only return an empty array if ALL items scored "passed".
 
 Return a JSON object with exactly this structure:
 {

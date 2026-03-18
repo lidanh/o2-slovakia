@@ -119,6 +119,22 @@ export function aggregateFeedback(
     if (allSuggestions.length >= 5) break;
   }
 
+  // Fallback: if score < 100 but no suggestions, derive from item-level improvements
+  if (allSuggestions.length === 0 && finalScore < 100) {
+    for (const [, cat] of categoriesByScore) {
+      for (const item of cat.items) {
+        if (item.feedback_detail?.improvements) {
+          for (const imp of item.feedback_detail.improvements) {
+            if (allSuggestions.length >= 5) break;
+            allSuggestions.push(imp);
+          }
+        }
+        if (allSuggestions.length >= 5) break;
+      }
+      if (allSuggestions.length >= 5) break;
+    }
+  }
+
   // Generate summary from category results
   const summary = generateSummary(categories, finalScore, salesIncluded);
 
