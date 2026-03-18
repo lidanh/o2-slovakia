@@ -190,7 +190,7 @@ function Stars({ rating }: { rating: number }) {
 }
 
 // --- Feedback Display ---
-function FeedbackReveal({ feedback, locale }: { feedback: InlineFeedback; locale: CallLocale }) {
+function FeedbackReveal({ feedback, locale, sessionId }: { feedback: InlineFeedback; locale: CallLocale; sessionId?: string }) {
   const localized = getLocalizedFeedback(feedback, locale);
 
   return (
@@ -353,15 +353,38 @@ function FeedbackReveal({ feedback, locale }: { feedback: InlineFeedback; locale
         </div>
       )}
 
-      <Text
-        style={{
-          fontSize: 13,
-          color: "#9CA3AF",
-          animation: "fadeIn 0.5s 1.5s both",
-        }}
-      >
-        {translate(locale, "fullFeedback")}
-      </Text>
+      {sessionId ? (
+        <a
+          href={`/training/${sessionId}`}
+          style={{
+            display: "inline-block",
+            height: 44,
+            lineHeight: "44px",
+            paddingInline: 28,
+            fontWeight: 600,
+            fontSize: 15,
+            borderRadius: 12,
+            background: "linear-gradient(135deg, #0112AA, #2563EB)",
+            color: "#fff",
+            textDecoration: "none",
+            boxShadow: "0 4px 16px rgba(1, 18, 170, 0.3)",
+            cursor: "pointer",
+            animation: "fadeIn 0.5s 1.5s both",
+          }}
+        >
+          {translate(locale, "viewFullReport")}
+        </a>
+      ) : (
+        <Text
+          style={{
+            fontSize: 13,
+            color: "#9CA3AF",
+            animation: "fadeIn 0.5s 1.5s both",
+          }}
+        >
+          {translate(locale, "fullFeedback")}
+        </Text>
+      )}
     </div>
   );
 }
@@ -612,7 +635,7 @@ export default function BrowserCallPage() {
         {/* Completed state — with or without feedback */}
         {call.state === "completed" && (
           call.feedbackResult ? (
-            <FeedbackReveal feedback={call.feedbackResult} locale={locale} />
+            <FeedbackReveal feedback={call.feedbackResult} locale={locale} sessionId={call.config?.sessionId} />
           ) : (
             <div style={{ padding: "24px 0", textAlign: "center", animation: "fadeIn 0.5s ease-out" }}>
               <CheckCircleOutlined
@@ -626,6 +649,28 @@ export default function BrowserCallPage() {
               <Text style={{ color: "#9CA3AF", fontSize: 15 }}>
                 {translate(locale, "feedbackInDashboard")}
               </Text>
+              {call.config?.sessionId && (
+                <a
+                  href={`/training/${call.config.sessionId}`}
+                  style={{
+                    display: "inline-block",
+                    marginTop: 16,
+                    height: 44,
+                    lineHeight: "44px",
+                    paddingInline: 28,
+                    fontWeight: 600,
+                    fontSize: 15,
+                    borderRadius: 12,
+                    background: "linear-gradient(135deg, #0112AA, #2563EB)",
+                    color: "#fff",
+                    textDecoration: "none",
+                    boxShadow: "0 4px 16px rgba(1, 18, 170, 0.3)",
+                    cursor: "pointer",
+                  }}
+                >
+                  {translate(locale, "viewFullReport")}
+                </a>
+              )}
             </div>
           )
         )}

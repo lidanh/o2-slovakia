@@ -24,6 +24,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const successMessage = searchParams.get("message");
+  const redirectTo = searchParams.get("redirect");
   const supabase = createClient();
 
   async function handleLogin(values: { email: string; password: string }) {
@@ -41,15 +42,19 @@ function LoginForm() {
       return;
     }
 
-    // Get role from the session to determine redirect
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    const role = authUser?.app_metadata?.role ?? "user";
-    const redirectMap: Record<string, string> = {
-      admin: "/dashboard",
-      team_manager: "/dashboard",
-      user: "/my-dashboard",
-    };
-    router.push(redirectMap[role] || "/dashboard");
+    // Redirect to intended destination or role-based default
+    if (redirectTo && redirectTo.startsWith("/")) {
+      router.push(redirectTo);
+    } else {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const role = authUser?.app_metadata?.role ?? "user";
+      const redirectMap: Record<string, string> = {
+        admin: "/dashboard",
+        team_manager: "/dashboard",
+        user: "/my-dashboard",
+      };
+      router.push(redirectMap[role] || "/dashboard");
+    }
     router.refresh();
   }
 

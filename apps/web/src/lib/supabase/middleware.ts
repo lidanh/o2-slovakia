@@ -60,9 +60,16 @@ export async function updateSession(request: NextRequest) {
     return response;
   }
 
-  // If no user and not on login page, redirect to login
+  // If no user and not on login page, redirect to login (preserving intended destination)
   if (!user && !pathname.startsWith("/login")) {
-    return redirectTo("/login");
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("redirect", pathname);
+    const response = NextResponse.redirect(url);
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      response.cookies.set(cookie.name, cookie.value, cookie);
+    });
+    return response;
   }
 
   // If user exists, apply role-based routing
@@ -124,8 +131,12 @@ export async function updateSession(request: NextRequest) {
 
     const defaultRoute = DEFAULT_ROUTE[role];
 
-    // If user is on login page, redirect to their default home
+    // If user is on login page, redirect to intended destination or default home
     if (pathname.startsWith("/login")) {
+      const redirectParam = request.nextUrl.searchParams.get("redirect");
+      if (redirectParam && redirectParam.startsWith("/")) {
+        return redirectTo(redirectParam);
+      }
       return redirectTo(defaultRoute);
     }
 
