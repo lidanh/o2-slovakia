@@ -2,6 +2,7 @@ import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 import { buildInviteHtml } from "./templates/invite";
 import { buildTrainingHtml } from "./templates/training";
+import { buildFeedbackHtml, type FeedbackEmailParams } from "./templates/feedback";
 
 let transporter: Transporter | null = null;
 
@@ -48,6 +49,24 @@ export async function sendInvitationEmail(
     subject: tenantName
       ? `You have been invited to ${tenantName} on O2 Trainer`
       : "You have been invited to O2 Trainer",
+    html,
+  });
+}
+
+export async function sendFeedbackEmail(
+  to: string,
+  params: FeedbackEmailParams
+): Promise<void> {
+  const html = buildFeedbackHtml(params);
+
+  await getTransporter().sendMail({
+    from: process.env.SMTP_FROM || "O2 Trainer <noreply@o2trainer.sk>",
+    to,
+    subject: params.language === "sk"
+      ? `Spätná väzba z tréningu: ${params.scenarioName} — ${params.score}/100`
+      : params.language === "hu"
+        ? `Képzési visszajelzés: ${params.scenarioName} — ${params.score}/100`
+        : `Training Feedback: ${params.scenarioName} — ${params.score}/100`,
     html,
   });
 }

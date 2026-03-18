@@ -2,7 +2,8 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { generateFeedback, type FeedbackResult } from "@/lib/llm";
 import { getCommunication } from "@/lib/wonderful";
 import { translateFeedback } from "@/lib/evaluation/translate";
-import type { TranscriptEntry, FeedbackTranslations } from "@repo/shared";
+import { sendFeedbackEmail } from "@/lib/email/send";
+import type { TranscriptEntry, FeedbackTranslations, FeedbackTranslation, FeedbackBreakdown, SessionHighlight } from "@repo/shared";
 
 export interface GenerateSessionFeedbackResult {
   alreadyExists?: boolean;
@@ -134,6 +135,131 @@ export async function generateSessionFeedback(
       .eq("id", session.assignment_id);
   }
 
-  // 10. Return result
+  // 10. Send feedback email to trainee (async, non-blocking)
+  // Pass translations explicitly since session was fetched before they were generated
+  const sessionWithTranslations = { ...session, feedback_translations };
+  sendFeedbackEmailForSession(supabase, sessionWithTranslations, feedback).catch((err) =>
+    console.error("[feedback] Failed to send feedback email:", err)
+  );
+
+  // 11. Return result
   return { success: true, feedback, session, feedback_translations };
+}
+
+/**
+ * Send feedback email to the trainee. Fetches user email and builds the email params.
+ * Intended to be called with .catch() so it never blocks the response.
+ */
+function extractLocalizedContent(
+  translations: FeedbackTranslations | null | undefined,
+  language: string
+) {
+  const lang = language as "sk" | "hu";
+  const tr: FeedbackTranslation | undefined = (lang === "sk" || lang === "hu") ? translations?.[lang] : undefined;
+  if (!tr) return {};
+
+  const localizedItemFeedback: Record<string, Record<string, string>> = {};
+  if (tr.feedback_breakdown_overrides) {
+    for (const [catKey, overrides] of Object.entries(tr.feedback_breakdown_overrides)) {
+      if (overrides?.items_feedback) {
+        localizedItemFeedback[catKey] = overrides.items_feedback;
+      }
+    }
+  }
+
+  return {
+    localizedSummary: tr.feedback_summary,
+    localizedSuggestions: tr.suggestions,
+    localizedHighlights: tr.highlights,
+    localizedItemFeedback: Object.keys(localizedItemFeedback).length > 0 ? localizedItemFeedback : undefined,
+  };
+}
+
+async function sendFeedbackEmailForSession(
+  supabase: ReturnType<typeof createServiceClient>,
+  session: Record<string, unknown>,
+  feedback: FeedbackResult
+): Promise<void> {
+  const { data: user } = await supabase
+    .from("users")
+    .select("name, email, language")
+    .eq("id", session.user_id as string)
+    .single();
+
+  if (!user?.email) return;
+
+  const language = (user.language as "en" | "sk" | "hu") || "en";
+  const translations = session.feedback_translations as FeedbackTranslations | null;
+  const localized = extractLocalizedContent(translations, language);
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const scenario = session.scenario as { name?: string } | null;
+  const difficultyLevel = session.difficulty_level as { name?: string } | null;
+
+  await sendFeedbackEmail(user.email, {
+    userName: user.name ?? "Trainee",
+    scenarioName: scenario?.name ?? "Unknown",
+    difficultyName: difficultyLevel?.name ?? "Default",
+    completedAt: (session.completed_at as string) ?? new Date().toISOString(),
+    score: feedback.score,
+    starRating: feedback.star_rating,
+    feedbackSummary: feedback.feedback_summary,
+    feedbackBreakdown: feedback.feedback_breakdown as FeedbackBreakdown,
+    suggestions: feedback.suggestions ?? [],
+    highlights: (feedback.highlights ?? []) as SessionHighlight[],
+    sessionUrl: `${appUrl}/training/${session.id as string}`,
+    language,
+    ...localized,
+  });
+}
+
+/**
+ * Standalone function to send feedback email after browser-call feedback generation.
+ * Used by the browser-call/complete route where feedback is generated inline.
+ */
+export async function sendFeedbackEmailAsync(
+  sessionId: string,
+  feedback: FeedbackResult
+): Promise<void> {
+  const supabase = createServiceClient();
+
+  const { data: session } = await supabase
+    .from("training_sessions")
+    .select("id, user_id, tenant_id, completed_at, feedback_translations, scenario:scenarios(name), difficulty_level:difficulty_levels(name)")
+    .eq("id", sessionId)
+    .single();
+
+  if (!session) return;
+
+  const { data: user } = await supabase
+    .from("users")
+    .select("name, email, language")
+    .eq("id", session.user_id)
+    .single();
+
+  if (!user?.email) return;
+
+  const language = (user.language as "en" | "sk" | "hu") || "en";
+  const translations = session.feedback_translations as FeedbackTranslations | null;
+  const localized = extractLocalizedContent(translations, language);
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const scenario = session.scenario as unknown as { name: string } | null;
+  const difficultyLevel = session.difficulty_level as unknown as { name: string } | null;
+
+  await sendFeedbackEmail(user.email, {
+    userName: user.name ?? "Trainee",
+    scenarioName: scenario?.name ?? "Unknown",
+    difficultyName: difficultyLevel?.name ?? "Default",
+    completedAt: session.completed_at ?? new Date().toISOString(),
+    score: feedback.score,
+    starRating: feedback.star_rating,
+    feedbackSummary: feedback.feedback_summary,
+    feedbackBreakdown: feedback.feedback_breakdown as FeedbackBreakdown,
+    suggestions: feedback.suggestions ?? [],
+    highlights: (feedback.highlights ?? []) as SessionHighlight[],
+    sessionUrl: `${appUrl}/training/${sessionId}`,
+    language,
+    ...localized,
+  });
 }
