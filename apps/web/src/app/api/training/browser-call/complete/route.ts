@@ -5,6 +5,7 @@ import { verifyBrowserCallToken } from "@/lib/jwt";
 import { generateFeedback } from "@/lib/llm";
 import { getCommunication } from "@/lib/wonderful";
 import { translateFeedback } from "@/lib/evaluation/translate";
+import { sendFeedbackEmailAsync } from "@/lib/feedback";
 import type { FeedbackTranslations } from "@repo/shared";
 
 const CompleteSchema = z.object({
@@ -156,6 +157,10 @@ export async function POST(request: NextRequest) {
             feedback_translations: feedbackTranslations,
           })
           .eq("id", payload.sessionId);
+        // Send feedback email (async, non-blocking)
+        sendFeedbackEmailAsync(payload.sessionId, feedbackResult).catch((err) =>
+          console.error("[feedback] Failed to send feedback email:", err)
+        );
       } catch (fbErr) {
         console.error("Feedback generation failed:", (fbErr as Error).message);
       }

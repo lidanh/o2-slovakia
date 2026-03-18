@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
 import { generateFeedback } from "@/lib/llm";
-import { generateSessionFeedback } from "@/lib/feedback";
+import { generateSessionFeedback, sendFeedbackEmailAsync } from "@/lib/feedback";
 import { translateFeedback } from "@/lib/evaluation/translate";
 import { getAuthUser } from "@/lib/auth/authorize";
 import type { TranscriptEntry, FeedbackTranslations } from "@repo/shared";
@@ -120,6 +120,11 @@ export async function POST(
       .single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    // Send feedback email (async, non-blocking)
+    sendFeedbackEmailAsync(id, feedback).catch((err) =>
+      console.error("[feedback] Failed to send feedback email:", err)
+    );
 
     // Update assignment status to completed if applicable
     if (data.assignment_id) {
