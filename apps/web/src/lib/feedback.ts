@@ -3,7 +3,7 @@ import { generateFeedback, type FeedbackResult } from "@/lib/llm";
 import { getCommunication } from "@/lib/wonderful";
 import { translateFeedback } from "@/lib/evaluation/translate";
 import { sendFeedbackEmail } from "@/lib/email/send";
-import type { TranscriptEntry, FeedbackTranslations, FeedbackTranslation, FeedbackBreakdown, SessionHighlight } from "@repo/shared";
+import type { TranscriptEntry, FeedbackTranslations, FeedbackTranslation, FeedbackBreakdown, SessionHighlight, FeedbackDetail } from "@repo/shared";
 
 export interface GenerateSessionFeedbackResult {
   alreadyExists?: boolean;
@@ -159,10 +159,16 @@ function extractLocalizedContent(
   if (!tr) return {};
 
   const localizedItemFeedback: Record<string, Record<string, string>> = {};
+  const localizedItemFeedbackDetail: Record<string, Record<string, FeedbackDetail>> = {};
+  let hasDetail = false;
   if (tr.feedback_breakdown_overrides) {
     for (const [catKey, overrides] of Object.entries(tr.feedback_breakdown_overrides)) {
       if (overrides?.items_feedback) {
         localizedItemFeedback[catKey] = overrides.items_feedback;
+      }
+      if (overrides?.items_feedback_detail) {
+        localizedItemFeedbackDetail[catKey] = overrides.items_feedback_detail;
+        hasDetail = true;
       }
     }
   }
@@ -172,6 +178,7 @@ function extractLocalizedContent(
     localizedSuggestions: tr.suggestions,
     localizedHighlights: tr.highlights,
     localizedItemFeedback: Object.keys(localizedItemFeedback).length > 0 ? localizedItemFeedback : undefined,
+    localizedItemFeedbackDetail: hasDetail ? localizedItemFeedbackDetail : undefined,
   };
 }
 

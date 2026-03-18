@@ -301,7 +301,9 @@
       "showMore": "Több megjelenítése",
       "wauBonus": "WAU bónusz: +{percentage}%",
       "noPositiveHighlights": "Nincsenek pozitív kiemelések",
-      "noImprovementAreas": "Nincsenek fejlesztendő területek"
+      "noImprovementAreas": "Nincsenek fejlesztendő területek",
+      "whatCouldBeImproved": "Mit lehetne javítani",
+      "exampleBetterApproach": "Jobb megközelítés példája"
     },
     "callTrigger": {
       "startTraining": "Képzés indítása",

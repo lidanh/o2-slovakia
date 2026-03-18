@@ -301,7 +301,9 @@
       "showMore": "Show more",
       "wauBonus": "WAU Bonus: +{percentage}%",
       "noPositiveHighlights": "No positive highlights",
-      "noImprovementAreas": "No improvement areas"
+      "noImprovementAreas": "No improvement areas",
+      "whatCouldBeImproved": "What could be improved",
+      "exampleBetterApproach": "Example of a better approach"
     },
     "callTrigger": {
       "startTraining": "Start Training",

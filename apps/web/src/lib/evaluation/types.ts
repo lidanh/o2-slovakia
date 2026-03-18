@@ -28,6 +28,10 @@ export interface CategoryEvaluationResult {
     key: string;
     score: ItemScore;
     feedback: string;
+    verdict?: string;
+    evidence?: string;
+    improvements?: string[];
+    example?: string;
   }[];
   highlights: SessionHighlight[];
   suggestions: string[];

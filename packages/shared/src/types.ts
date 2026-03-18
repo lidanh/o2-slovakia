@@ -179,6 +179,13 @@ export type CallType = "phone" | "browser";
 
 export type ItemScore = "passed" | "partially_passed" | "failed";
 
+export interface FeedbackDetail {
+  verdict: string;
+  evidence: string;
+  improvements?: string[];
+  example?: string;
+}
+
 export interface FeedbackItemResult {
   key: string;
   label: string;
@@ -186,6 +193,7 @@ export interface FeedbackItemResult {
   max_points: number;
   earned_points: number;
   feedback: string;
+  feedback_detail?: FeedbackDetail;
 }
 
 export interface FeedbackCategoryResult {
@@ -221,6 +229,7 @@ export interface TranscriptEntry {
 
 export interface FeedbackTranslationOverrides {
   items_feedback: Record<string, string>;  // item.key -> translated feedback text
+  items_feedback_detail?: Record<string, FeedbackDetail>;  // item.key -> translated feedback detail
   suggestions: string[];
   highlights: SessionHighlight[];
 }

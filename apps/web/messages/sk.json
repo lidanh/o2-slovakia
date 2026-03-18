@@ -301,7 +301,9 @@
       "showMore": "Zobraziť viac",
       "wauBonus": "WAU bonus: +{percentage} %",
       "noPositiveHighlights": "Žiadne pozitívne hodnotenia",
-      "noImprovementAreas": "Žiadne oblasti na zlepšenie"
+      "noImprovementAreas": "Žiadne oblasti na zlepšenie",
+      "whatCouldBeImproved": "Čo by sa dalo zlepšiť",
+      "exampleBetterApproach": "Príklad lepšieho prístupu"
     },
     "callTrigger": {
       "startTraining": "Spustiť tréning",

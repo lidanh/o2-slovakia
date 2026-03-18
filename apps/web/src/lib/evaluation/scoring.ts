@@ -54,7 +54,7 @@ export function aggregateFeedback(
       const earned = POINTS[item.score] ?? 0;
       earnedPoints += earned;
       const itemDef = def.items.find((d) => d.key === item.key);
-      return {
+      const result: FeedbackItemResult = {
         key: item.key,
         label: itemDef?.label ?? item.key,
         score: item.score,
@@ -62,6 +62,15 @@ export function aggregateFeedback(
         earned_points: earned,
         feedback: item.feedback,
       };
+      if (item.verdict || item.evidence) {
+        result.feedback_detail = {
+          verdict: item.verdict ?? '',
+          evidence: item.evidence ?? '',
+          improvements: item.improvements,
+          example: item.example,
+        };
+      }
+      return result;
     });
 
     const scorePercentage = maxPoints > 0 ? Math.round((earnedPoints / maxPoints) * 100) : 0;

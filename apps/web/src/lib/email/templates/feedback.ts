@@ -1,4 +1,4 @@
-import type { FeedbackBreakdown, SessionHighlight } from "@repo/shared";
+import type { FeedbackBreakdown, SessionHighlight, FeedbackDetail } from "@repo/shared";
 import {
   EVALUATION_CATEGORY_LABELS,
   EVALUATION_CATEGORY_EMOJIS,
@@ -22,6 +22,8 @@ const LABELS: Record<Language, {
   passed: string;
   partial: string;
   failed: string;
+  whatCouldBeImproved: string;
+  exampleBetterApproach: string;
 }> = {
   en: {
     trainingFeedback: "TRAINING FEEDBACK",
@@ -38,6 +40,8 @@ const LABELS: Record<Language, {
     passed: "Passed",
     partial: "Partial",
     failed: "Failed",
+    whatCouldBeImproved: "What could be improved",
+    exampleBetterApproach: "Example of a better approach",
   },
   sk: {
     trainingFeedback: "SPÄTNÁ VÄZBA Z TRÉNINGU",
@@ -54,6 +58,8 @@ const LABELS: Record<Language, {
     passed: "Splnené",
     partial: "Čiastočne",
     failed: "Nesplnené",
+    whatCouldBeImproved: "Čo by sa dalo zlepšiť",
+    exampleBetterApproach: "Príklad lepšieho prístupu",
   },
   hu: {
     trainingFeedback: "KÉPZÉSI VISSZAJELZÉS",
@@ -70,6 +76,8 @@ const LABELS: Record<Language, {
     passed: "Megfelelt",
     partial: "Részleges",
     failed: "Nem felelt meg",
+    whatCouldBeImproved: "Mit lehetne javítani",
+    exampleBetterApproach: "Jobb megközelítés példája",
   },
 };
 
@@ -90,6 +98,7 @@ export interface FeedbackEmailParams {
   localizedSuggestions?: string[];
   localizedHighlights?: SessionHighlight[];
   localizedItemFeedback?: Record<string, Record<string, string>>; // categoryKey → itemKey → translated feedback
+  localizedItemFeedbackDetail?: Record<string, Record<string, FeedbackDetail>>; // categoryKey → itemKey → translated detail
 }
 
 function escapeHtml(str: string): string {
@@ -155,6 +164,7 @@ export function buildFeedbackHtml(params: FeedbackEmailParams): string {
     localizedSuggestions,
     localizedHighlights,
     localizedItemFeedback,
+    localizedItemFeedbackDetail,
   } = params;
 
   const l = LABELS[language];
@@ -182,7 +192,29 @@ export function buildFeedbackHtml(params: FeedbackEmailParams): string {
       const itemRows = (cat.items ?? [])
         .map((item) => {
           const ic = itemColor(item.score, l);
+          const detail: FeedbackDetail | undefined = localizedItemFeedbackDetail?.[key]?.[item.key] ?? item.feedback_detail;
           const itemFeedback = localizedItemFeedback?.[key]?.[item.key] ?? item.feedback;
+
+          let feedbackHtml: string;
+          if (detail) {
+            feedbackHtml = `<div style="font-size: 12px; font-weight: 600; color: #1a1a2e; margin-bottom: 2px;">${escapeHtml(detail.verdict)}</div>
+                      <div style="font-size: 12px; color: #6B7280; line-height: 1.5;">${escapeHtml(detail.evidence)}</div>`;
+            if (detail.improvements && detail.improvements.length > 0) {
+              feedbackHtml += `<div style="font-size: 11px; font-weight: 600; color: #B45309; margin-top: 6px;">${escapeHtml(l.whatCouldBeImproved)}:</div>
+                      <ul style="margin: 2px 0 0 16px; padding: 0; font-size: 12px; color: #374151; line-height: 1.5;">
+                        ${detail.improvements.map((imp) => `<li>${escapeHtml(imp)}</li>`).join("")}
+                      </ul>`;
+            }
+            if (detail.example) {
+              feedbackHtml += `<div style="margin-top: 6px; padding: 6px 10px; background: #F0FDF4; border-radius: 6px; border-left: 3px solid #059669;">
+                        <div style="font-size: 10px; font-weight: 600; color: #059669;">${escapeHtml(l.exampleBetterApproach)}:</div>
+                        <div style="font-size: 12px; color: #374151; font-style: italic;">&ldquo;${escapeHtml(detail.example)}&rdquo;</div>
+                      </div>`;
+            }
+          } else {
+            feedbackHtml = `<div style="font-size: 12px; color: #6B7280; line-height: 1.5;">${escapeHtml(itemFeedback)}</div>`;
+          }
+
           return `
             <tr>
               <td style="padding: 8px 0; border-bottom: 1px solid #F5F5F5; vertical-align: top;">
@@ -193,7 +225,7 @@ export function buildFeedbackHtml(params: FeedbackEmailParams): string {
                     </td>
                     <td style="vertical-align: top;">
                       <div style="font-size: 13px; font-weight: 600; color: #1a1a2e; margin-bottom: 2px;">${escapeHtml(item.label)}</div>
-                      <div style="font-size: 12px; color: #6B7280; line-height: 1.5;">${escapeHtml(itemFeedback)}</div>
+                      ${feedbackHtml}
                     </td>
                     <td width="40" style="vertical-align: top; text-align: right; font-size: 12px; color: #9CA3AF; white-space: nowrap;">
                       ${item.earned_points}/${item.max_points}

@@ -25,7 +25,7 @@ import {
   Tooltip,
 } from "recharts";
 import {useTranslations, useLocale} from 'next-intl';
-import type { SessionWithDetails, FeedbackBreakdown, TranscriptEntry, FeedbackTranslations } from "@repo/shared";
+import type { SessionWithDetails, FeedbackBreakdown, TranscriptEntry, FeedbackTranslations, FeedbackDetail } from "@repo/shared";
 import {
   SESSION_STATUS_LABELS,
   SESSION_STATUS_COLORS,
@@ -59,7 +59,8 @@ function getLocalizedContent(session: SessionWithDetails, locale: string) {
       feedback_summary: session.feedback_summary,
       suggestions: session.suggestions,
       highlights: session.highlights,
-      getItemFeedback: (_categoryKey: string, itemKey: string, fallback: string) => fallback,
+      getItemFeedback: (_categoryKey: string, _itemKey: string, fallback: string) => fallback,
+      getItemFeedbackDetail: (_categoryKey: string, _itemKey: string, fallback?: FeedbackDetail) => fallback,
     };
   }
   return {
@@ -68,6 +69,8 @@ function getLocalizedContent(session: SessionWithDetails, locale: string) {
     highlights: tr.highlights ?? session.highlights,
     getItemFeedback: (categoryKey: string, itemKey: string, fallback: string) =>
       tr.feedback_breakdown_overrides?.[categoryKey]?.items_feedback?.[itemKey] ?? fallback,
+    getItemFeedbackDetail: (categoryKey: string, itemKey: string, fallback?: FeedbackDetail) =>
+      tr.feedback_breakdown_overrides?.[categoryKey]?.items_feedback_detail?.[itemKey] ?? fallback,
   };
 }
 
@@ -163,6 +166,7 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
             <div>
               {cat.items.map((item) => {
                 const tagConfig = SCORE_TAG_CONFIG[item.score] ?? SCORE_TAG_CONFIG.failed;
+                const detail = localized.getItemFeedbackDetail(key, item.key, item.feedback_detail);
                 return (
                   <div
                     key={item.key}
@@ -179,7 +183,28 @@ export default function SessionDetail({ session, onSessionUpdate }: SessionDetai
                     </Tag>
                     <div style={{ flex: 1 }}>
                       <Text strong style={{ fontSize: 13, display: "block" }}>{item.label}</Text>
-                      <Text style={{ fontSize: 12, color: "#6B7280" }}>{localized.getItemFeedback(key, item.key, item.feedback)}</Text>
+                      {detail ? (
+                        <>
+                          <Text strong style={{ fontSize: 12, display: "block", marginTop: 4 }}>{detail.verdict}</Text>
+                          <Text style={{ fontSize: 12, color: "#6B7280", display: "block", marginTop: 2 }}>{detail.evidence}</Text>
+                          {detail.improvements && detail.improvements.length > 0 && (
+                            <div style={{ marginTop: 8 }}>
+                              <Text strong style={{ fontSize: 12, color: "#B45309", display: "block" }}>{t('detail.whatCouldBeImproved')}:</Text>
+                              <ul style={{ margin: "4px 0 0 16px", padding: 0, fontSize: 12, color: "#374151" }}>
+                                {detail.improvements.map((imp, i) => <li key={i} style={{ marginBottom: 2 }}>{imp}</li>)}
+                              </ul>
+                            </div>
+                          )}
+                          {detail.example && (
+                            <div style={{ marginTop: 8, padding: "8px 12px", background: "#F0FDF4", borderRadius: 8, borderLeft: "3px solid #059669" }}>
+                              <Text strong style={{ fontSize: 11, color: "#059669", display: "block" }}>{t('detail.exampleBetterApproach')}:</Text>
+                              <Text style={{ fontSize: 12, color: "#374151", fontStyle: "italic" }}>&ldquo;{detail.example}&rdquo;</Text>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <Text style={{ fontSize: 12, color: "#6B7280" }}>{localized.getItemFeedback(key, item.key, item.feedback)}</Text>
+                      )}
                     </div>
                     <Text style={{ fontSize: 12, color: "#9CA3AF", flexShrink: 0 }}>
                       {item.earned_points}/{item.max_points}

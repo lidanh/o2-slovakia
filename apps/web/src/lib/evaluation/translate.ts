@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { FeedbackTranslation } from "@repo/shared";
+import type { FeedbackTranslation, FeedbackDetail } from "@repo/shared";
 import type { FeedbackResult } from "../llm";
 
 let _openai: OpenAI | null = null;
@@ -23,6 +23,7 @@ interface TranslatablePayload {
     string,
     {
       items_feedback: Record<string, string>;
+      items_feedback_detail?: Record<string, FeedbackDetail>;
       suggestions: string[];
       highlights: { type: string; text: string }[];
     }
@@ -35,11 +36,18 @@ function extractTranslatable(feedback: FeedbackResult): TranslatablePayload {
   if (feedback.feedback_breakdown?.categories) {
     for (const [key, cat] of Object.entries(feedback.feedback_breakdown.categories)) {
       const itemsFeedback: Record<string, string> = {};
+      const itemsFeedbackDetail: Record<string, FeedbackDetail> = {};
+      let hasDetail = false;
       for (const item of cat.items) {
         itemsFeedback[item.key] = item.feedback;
+        if (item.feedback_detail) {
+          itemsFeedbackDetail[item.key] = item.feedback_detail;
+          hasDetail = true;
+        }
       }
       categories[key] = {
         items_feedback: itemsFeedback,
+        ...(hasDetail ? { items_feedback_detail: itemsFeedbackDetail } : {}),
         suggestions: cat.suggestions,
         highlights: cat.highlights.map((h) => ({ type: h.type, text: h.text })),
       };
@@ -69,6 +77,7 @@ function parseTranslation(
         key,
         {
           items_feedback: cat.items_feedback,
+          ...(cat.items_feedback_detail ? { items_feedback_detail: cat.items_feedback_detail } : {}),
           suggestions: cat.suggestions,
           highlights: cat.highlights.map((h) => ({
             type: h.type as "positive" | "negative",

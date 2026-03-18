@@ -33,7 +33,17 @@ export function buildCategoryPrompt(
       const scores = item.allowPartial
         ? `"passed" | "partially_passed" | "failed"`
         : `"passed" | "failed"`;
-      return `    { "key": "${item.key}", "score": <${scores}>, "feedback": "<1-2 sentence explanation citing specific transcript moments>" }`;
+      return `    {
+      "key": "${item.key}",
+      "score": <${scores}>,
+      "feedback": "<1 compact sentence summary>",
+      "verdict": "<'This criterion was met.' | 'This criterion was not met.' | 'This criterion was partially met.'>",
+      "evidence": "<2-3 sentences citing specific moments — quote or paraphrase what the trainee said/did>"${item.allowPartial ? `,
+      "improvements": ["<concrete actionable bullet>", ...],
+      "example": "<a realistic sample phrase the trainee could say>"` : `,
+      "improvements": ["<concrete actionable bullet>", ...],
+      "example": "<a realistic sample phrase the trainee could say>"`}
+    }`;
     })
     .join(",\n");
 
@@ -48,7 +58,15 @@ Evaluate each of the following items:
 
 ${itemsSection}
 
-For each item, score it based on the assessment question. Cite specific moments from the transcript in your feedback.
+For each item, score it based on the assessment question.
+
+IMPORTANT per-item output rules:
+- "feedback": A single compact sentence (kept for summaries and emails).
+- "verdict": Exactly one of: "This criterion was met.", "This criterion was not met.", or "This criterion was partially met."
+- "evidence": 2-3 sentences grounded in the actual transcript. Quote or paraphrase specific things the trainee said or did.
+- "improvements": (ONLY for "failed" or "partially_passed") An array of 2-4 concrete, actionable bullet points specific to this scenario.
+- "example": (ONLY for "failed" or "partially_passed") A realistic sample phrase in quotes the trainee could use in this conversation.
+- For "passed" items, OMIT "improvements" and "example" entirely.
 
 Also identify:
 - **highlights**: Specific positive or negative moments related to this category
@@ -87,7 +105,15 @@ Consider these aspects:
 Return a JSON object:
 {
   "items": [
-    { "key": "wau_initiative", "score": "passed" | "partially_passed" | "failed", "feedback": "<explanation>" }
+    {
+      "key": "wau_initiative",
+      "score": "passed" | "partially_passed" | "failed",
+      "feedback": "<1 compact sentence summary>",
+      "verdict": "<'This criterion was met.' | 'This criterion was not met.' | 'This criterion was partially met.'>",
+      "evidence": "<2-3 sentences citing specific moments from the transcript>",
+      "improvements": ["<only for failed/partially_passed>"],
+      "example": "<only for failed/partially_passed — a sample phrase>"
+    }
   ],
   "wau_bonus_percentage": <number 0-20>,
   "highlights": [
