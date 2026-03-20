@@ -103,6 +103,7 @@ resource "aws_lb" "ws_proxy" {
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
   subnets            = data.aws_subnets.default.ids
+  idle_timeout       = 3600 # 1 hour – WebSocket calls can be long-lived
 }
 
 resource "aws_lb_target_group" "ws_proxy" {

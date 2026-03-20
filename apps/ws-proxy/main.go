@@ -9,10 +9,17 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
+)
+
+const (
+	pingInterval = 30 * time.Second
+	writeWait    = 10 * time.Second
 )
 
 func init() {
@@ -68,7 +75,7 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 
 	// 3. Validate JWT
 	secret := os.Getenv("BROWSER_CALL_JWT_SECRET")
-	parsed, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
+	parsed, err := jwt.Parse(token, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
@@ -103,7 +110,7 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 		supabaseURL, url.QueryEscape(sessionID))
 	sessResp, err := supabaseGet(sessURL, serviceKey)
 	if err != nil {
-		log.Printf("[ws-proxy] session check failed: %v", err)
+		log.Printf("[ws-proxy] [session=%s] session check failed: %v", sessionID, err)
 		http.Error(w, "session check failed", http.StatusBadGateway)
 		return
 	}
@@ -113,14 +120,14 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 		TenantID string `json:"tenant_id"`
 	}
 	if err := json.Unmarshal(sessResp, &sessions); err != nil || len(sessions) == 0 {
-		log.Printf("[ws-proxy] no active session found for %s", sessionID)
+		log.Printf("[ws-proxy] [session=%s] no active session found", sessionID)
 		http.Error(w, "no active session", http.StatusForbidden)
 		return
 	}
 
 	tenantID := sessions[0].TenantID
 	if tenantID == "" {
-		log.Printf("[ws-proxy] session %s has no tenant_id", sessionID)
+		log.Printf("[ws-proxy] [session=%s] session has no tenant_id", sessionID)
 		http.Error(w, "session missing tenant", http.StatusInternalServerError)
 		return
 	}
@@ -130,7 +137,7 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 		supabaseURL, url.QueryEscape(tenantID))
 	cfgResp, err := supabaseGet(cfgURL, serviceKey)
 	if err != nil {
-		log.Printf("[ws-proxy] tenant settings fetch failed: %v", err)
+		log.Printf("[ws-proxy] [session=%s] tenant settings fetch failed: %v", sessionID, err)
 		http.Error(w, "config fetch failed", http.StatusBadGateway)
 		return
 	}
@@ -144,7 +151,7 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 		} `json:"settings"`
 	}
 	if err := json.Unmarshal(cfgResp, &cfgRows); err != nil || len(cfgRows) == 0 {
-		log.Printf("[ws-proxy] failed to parse tenant settings: %v", err)
+		log.Printf("[ws-proxy] [session=%s] failed to parse tenant settings: %v", sessionID, err)
 		http.Error(w, "config parse failed", http.StatusInternalServerError)
 		return
 	}
@@ -155,7 +162,7 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 	// 5. Extract origin from tenant_url
 	parsed2, err := url.Parse(tenantURL)
 	if err != nil {
-		log.Printf("[ws-proxy] invalid tenant_url: %v", err)
+		log.Printf("[ws-proxy] [session=%s] invalid tenant_url: %v", sessionID, err)
 		http.Error(w, "invalid tenant_url", http.StatusInternalServerError)
 		return
 	}
@@ -179,7 +186,7 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 			body = string(b)
 			resp.Body.Close()
 		}
-		log.Printf("[ws-proxy] upstream dial failed: %v %s", err, body)
+		log.Printf("[ws-proxy] [session=%s] upstream dial failed: %v %s", sessionID, err, body)
 		http.Error(w, "upstream connection failed", http.StatusBadGateway)
 		return
 	}
@@ -188,48 +195,127 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 	// 8. Upgrade client connection
 	clientConn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("[ws-proxy] client upgrade failed: %v", err)
+		log.Printf("[ws-proxy] [session=%s] client upgrade failed: %v", sessionID, err)
 		return
 	}
 	defer clientConn.Close()
 
-	log.Printf("[ws-proxy] relay established for session %s", sessionID)
+	log.Printf("[ws-proxy] [session=%s] relay established", sessionID)
 
-	// 9. Relay messages bidirectionally
-	done := make(chan struct{})
+	// 9. Relay messages bidirectionally with keepalive
+	sess := &relaySession{
+		sessionID:  sessionID,
+		client:     clientConn,
+		upstream:   upstreamConn,
+		closedOnce: sync.Once{},
+		done:       make(chan struct{}),
+	}
+
+	// Start ping keepalive for both connections
+	go sess.pingLoop(clientConn, "client")
+	go sess.pingLoop(upstreamConn, "upstream")
 
 	// client -> upstream
 	go func() {
-		defer close(done)
-		relay(clientConn, upstreamConn, "client->upstream")
+		sess.relay(clientConn, upstreamConn, "client->upstream")
+		sess.shutdown()
 	}()
 
 	// upstream -> client
-	relay(upstreamConn, clientConn, "upstream->client")
+	sess.relay(upstreamConn, clientConn, "upstream->client")
+	sess.shutdown()
 
-	<-done
-	log.Printf("[ws-proxy] relay closed for session %s", sessionID)
+	<-sess.done
+	log.Printf("[ws-proxy] [session=%s] relay closed", sessionID)
 }
 
-func relay(src, dst *websocket.Conn, label string) {
+type relaySession struct {
+	sessionID  string
+	client     *websocket.Conn
+	upstream   *websocket.Conn
+	closedOnce sync.Once
+	done       chan struct{}
+}
+
+// shutdown cleanly closes both connections exactly once
+func (s *relaySession) shutdown() {
+	s.closedOnce.Do(func() {
+		s.client.WriteControl(
+			websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
+			time.Now().Add(writeWait),
+		)
+		s.upstream.WriteControl(
+			websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
+			time.Now().Add(writeWait),
+		)
+		s.client.Close()
+		s.upstream.Close()
+		close(s.done)
+	})
+}
+
+// pingLoop sends periodic pings to keep the connection alive through the ALB
+func (s *relaySession) pingLoop(conn *websocket.Conn, label string) {
+	ticker := time.NewTicker(pingInterval)
+	defer ticker.Stop()
+
+	conn.SetPongHandler(func(string) error {
+		return nil
+	})
+
+	for {
+		select {
+		case <-ticker.C:
+			if err := conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(writeWait)); err != nil {
+				if !strings.Contains(err.Error(), "use of closed network connection") {
+					log.Printf("[ws-proxy] [session=%s] %s ping failed: %v", s.sessionID, label, err)
+				}
+				return
+			}
+		case <-s.done:
+			return
+		}
+	}
+}
+
+func (s *relaySession) relay(src, dst *websocket.Conn, label string) {
 	for {
 		msgType, msg, err := src.ReadMessage()
 		if err != nil {
 			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
-				log.Printf("[ws-proxy] %s closed normally", label)
+				log.Printf("[ws-proxy] [session=%s] %s closed normally", s.sessionID, label)
 			} else if !strings.Contains(err.Error(), "use of closed network connection") {
-				log.Printf("[ws-proxy] %s read error: %v", label, err)
+				log.Printf("[ws-proxy] [session=%s] %s read error: %v", s.sessionID, label, err)
 			}
-			// Close the other side with the same close code if possible
-			closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")
+
+			// Send a clean close to the other side.
+			// Use the original close code if it's a valid sendable code,
+			// otherwise default to normal closure.
+			closeCode := websocket.CloseNormalClosure
+			closeText := ""
 			if ce, ok := err.(*websocket.CloseError); ok {
-				closeMsg = websocket.FormatCloseMessage(ce.Code, ce.Text)
+				// RFC 6455 §7.4.1: codes 1005 and 1006 are reserved and
+				// MUST NOT be set in a close frame. Only forward valid codes.
+				if ce.Code != websocket.CloseNoStatusReceived && ce.Code != websocket.CloseAbnormalClosure {
+					closeCode = ce.Code
+					closeText = ce.Text
+				}
 			}
-			dst.WriteMessage(websocket.CloseMessage, closeMsg)
+			dst.WriteControl(
+				websocket.CloseMessage,
+				websocket.FormatCloseMessage(closeCode, closeText),
+				time.Now().Add(writeWait),
+			)
 			return
 		}
+
+		dst.SetWriteDeadline(time.Now().Add(writeWait))
 		if err := dst.WriteMessage(msgType, msg); err != nil {
-			log.Printf("[ws-proxy] %s write error: %v", label, err)
+			if !strings.Contains(err.Error(), "use of closed network connection") {
+				log.Printf("[ws-proxy] [session=%s] %s write error: %v", s.sessionID, label, err)
+			}
 			return
 		}
 	}
