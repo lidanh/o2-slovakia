@@ -92,16 +92,34 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const phone = body.phone as string | undefined;
     const otp = body.otp as string | undefined;
+    const sessionId = body.session_id as string | undefined;
 
-    if (!phone && !otp) {
-      return NextResponse.json({ error: "Missing phone or otp parameter" }, { status: 400 });
+    if (!phone && !otp && !sessionId) {
+      return NextResponse.json({ error: "Missing phone, otp, or session_id parameter" }, { status: 400 });
     }
 
     const supabase = createServiceClient();
 
     let session;
 
-    if (otp) {
+    if (sessionId) {
+      // Direct session ID lookup
+      const { data, error } = await supabase
+        .from("training_sessions")
+        .select(`
+          *,
+          scenario:scenarios(*),
+          difficulty_level:difficulty_levels(*)
+        `)
+        .eq("id", sessionId)
+        .eq("tenant_id", tenantId)
+        .single();
+
+      if (error || !data) {
+        return NextResponse.json({ error: "No session found for this session_id" }, { status: 404 });
+      }
+      session = data;
+    } else if (otp) {
       // OTP-based lookup (browser calls)
       const { data, error } = await supabase
         .from("training_sessions")
@@ -144,6 +162,8 @@ export async function POST(request: NextRequest) {
       }
       session = data;
     }
+
+    console.log("[wonderful/scenario] session_id:", session.id);
 
     const scenario = session.scenario;
     const difficultyLevel = session.difficulty_level;

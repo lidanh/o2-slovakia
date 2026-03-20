@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { Input, Button, Spin, Typography } from "antd";
+import { Button, Spin, Typography } from "antd";
 import {
   AudioOutlined,
   CheckCircleOutlined,
@@ -696,29 +696,6 @@ export default function BrowserCallPage() {
                   >
                     {call.config.difficultyName}
                   </Text>
-                </div>
-              )}
-
-              {/* OTP Display */}
-              {call.config && (
-                <div style={{ textAlign: "center" }}>
-                  <Input.OTP
-                    length={6}
-                    size="large"
-                    value={call.config.otp}
-                    disabled
-                    style={{ pointerEvents: "none" }}
-                  />
-                  <div
-                    style={{
-                      marginTop: 12,
-                      fontSize: 14,
-                      color: "#6b7280",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {translate(locale, "tellCode")}
-                  </div>
                 </div>
               )}
 
