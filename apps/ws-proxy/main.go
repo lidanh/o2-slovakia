@@ -67,6 +67,7 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 	token := r.URL.Query().Get("token")
 	agentID := r.URL.Query().Get("agent_id")
 	metadata := r.URL.Query().Get("metadata")
+	fromName := r.URL.Query().Get("from")
 
 	if token == "" || agentID == "" {
 		http.Error(w, "missing token or agent_id", http.StatusBadRequest)
@@ -172,6 +173,9 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 	upstreamURL := fmt.Sprintf("wss://%s/telephony/websocket/call?agent_id=%s", host, url.QueryEscape(agentID))
 	if metadata != "" {
 		upstreamURL += "&metadata=" + url.QueryEscape(metadata)
+	}
+	if fromName != "" {
+		upstreamURL += "&from=" + url.QueryEscape(fromName)
 	}
 
 	log.Printf("[ws-proxy] [session=%s] upstream URL: %s", sessionID, upstreamURL)

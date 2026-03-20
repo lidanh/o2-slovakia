@@ -410,6 +410,7 @@ export default function useBrowserCall(
         const params = new URLSearchParams({
           token: tokenRef.current,
           agent_id: config.agentId,
+          from: config.userName,
         });
         const metadata = JSON.stringify({
           otp: config.otp,
