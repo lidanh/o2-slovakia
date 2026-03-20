@@ -102,15 +102,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { error: updateErr } = await supabase
-      .from("assignments")
-      .update({ status: "in_progress" })
-      .eq("id", assignmentId);
-
-    if (updateErr) {
-      console.error("Failed to update assignment status:", updateErr.message);
-    }
-
     const callUrl = `/call/${token}`;
 
     return NextResponse.json(

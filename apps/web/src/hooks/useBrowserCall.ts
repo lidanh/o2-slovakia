@@ -205,13 +205,17 @@ export default function useBrowserCall(
 
         case "disconnected":
           if (
-            message.code !== 1000 &&
             stateRef.current !== "completing" &&
             stateRef.current !== "completed"
           ) {
             cleanupAudio();
-            setState("error");
-            setStatusText(`Connection failed (code ${message.code})`);
+            if (stateRef.current === "connected") {
+              // Was in an active call — treat as session end, not error
+              completeSession();
+            } else if (message.code !== 1000) {
+              setState("error");
+              setStatusText(`Connection failed (code ${message.code})`);
+            }
           }
           break;
 
@@ -449,6 +453,32 @@ export default function useBrowserCall(
     cleanupAudio();
     completeSession();
   }, [sendEvent, cleanupAudio, completeSession]);
+
+  // --- Attempt session completion when window/tab closes ---
+
+  const completeSessionRef = useRef(completeSession);
+  useEffect(() => {
+    completeSessionRef.current = completeSession;
+  }, [completeSession]);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // If the call is active, fire a beacon to complete the session server-side
+      const s = stateRef.current;
+      if (s === "connected" || s === "connecting" || s === "requesting_mic") {
+        const payload = JSON.stringify({
+          token: tokenRef.current,
+          communicationId: communicationIdRef.current ?? "",
+        });
+        navigator.sendBeacon(
+          "/api/training/browser-call/complete",
+          new Blob([payload], { type: "application/json" })
+        );
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
 
   // --- Cleanup on unmount ---
 

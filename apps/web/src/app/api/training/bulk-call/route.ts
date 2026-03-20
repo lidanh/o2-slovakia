@@ -26,18 +26,43 @@ export async function POST(request: NextRequest) {
     const { scenarioId, difficultyLevelId } = parsed.data;
     const tenantId = auth.user.tenantId;
 
-    // Fetch pending assignments scoped to tenant
-    const { data: assignments, error: aError } = await supabase
+    // Fetch all assignments for this scenario/difficulty, then filter out completed ones
+    const { data: allAssignments, error: aError } = await supabase
       .from("assignments")
       .select("*, user:users(*), scenario:scenarios(*), difficulty_level:difficulty_levels(*)")
       .eq("tenant_id", tenantId)
       .eq("scenario_id", scenarioId)
-      .eq("difficulty_level_id", difficultyLevelId)
-      .eq("status", "pending")
-      .limit(MAX_BULK_CALL_SIZE);
+      .eq("difficulty_level_id", difficultyLevelId);
 
     if (aError) return NextResponse.json({ error: aError.message }, { status: 500 });
-    if (!assignments || assignments.length === 0) {
+    if (!allAssignments || allAssignments.length === 0) {
+      return NextResponse.json({ error: "No pending assignments found" }, { status: 404 });
+    }
+
+    // Find assignments whose latest session is completed — exclude them
+    const assignmentIds = allAssignments.map((a) => a.id);
+    const { data: sessions } = await supabase
+      .from("training_sessions")
+      .select("assignment_id, status")
+      .in("assignment_id", assignmentIds)
+      .order("created_at", { ascending: false });
+
+    const completedAssignmentIds = new Set<string>();
+    const seen = new Set<string>();
+    for (const s of sessions ?? []) {
+      if (s.assignment_id && !seen.has(s.assignment_id)) {
+        seen.add(s.assignment_id);
+        if (s.status === "completed") {
+          completedAssignmentIds.add(s.assignment_id);
+        }
+      }
+    }
+
+    const assignments = allAssignments
+      .filter((a) => !completedAssignmentIds.has(a.id))
+      .slice(0, MAX_BULK_CALL_SIZE);
+
+    if (assignments.length === 0) {
       return NextResponse.json({ error: "No pending assignments found" }, { status: 404 });
     }
 
@@ -118,11 +143,6 @@ export async function POST(request: NextRequest) {
             .update({ call_sid: callId })
             .eq("id", session.id);
         }
-
-        await supabase
-          .from("assignments")
-          .update({ status: "in_progress" })
-          .eq("id", assignment.id);
 
         results.push({ assignmentId: assignment.id, sessionId: session.id, callId });
       } catch (err) {

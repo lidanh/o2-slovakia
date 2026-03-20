@@ -111,10 +111,12 @@ export async function generateSessionFeedback(
   if (huResult.status === "fulfilled") translations.hu = huResult.value;
   const feedback_translations = Object.keys(translations).length > 0 ? translations : null;
 
-  // 8. Update session with feedback fields + transcript
+  // 8. Update session with feedback fields + transcript, ensure status is completed
   await supabase
     .from("training_sessions")
     .update({
+      status: "completed",
+      completed_at: session.completed_at ?? new Date().toISOString(),
       score: feedback.score,
       star_rating: feedback.star_rating,
       feedback_summary: feedback.feedback_summary,
@@ -127,15 +129,7 @@ export async function generateSessionFeedback(
     })
     .eq("id", sessionId);
 
-  // 9. Mark assignment as completed if applicable
-  if (session.assignment_id) {
-    await supabase
-      .from("assignments")
-      .update({ status: "completed" })
-      .eq("id", session.assignment_id);
-  }
-
-  // 10. Send feedback email to trainee (async, non-blocking)
+  // 9. Send feedback email to trainee (async, non-blocking)
   // Pass translations explicitly since session was fetched before they were generated
   const sessionWithTranslations = { ...session, feedback_translations };
   sendFeedbackEmailForSession(supabase, sessionWithTranslations, feedback).catch((err) =>

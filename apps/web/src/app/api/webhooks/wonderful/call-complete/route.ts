@@ -54,16 +54,19 @@ export async function POST(request: NextRequest) {
 
     console.log("[webhook/call-complete] Found session:", session.id);
 
-    // If session has no communication_id, update it
+    // Always mark session as completed and update communication_id
+    const sessionUpdate: Record<string, unknown> = {
+      status: "completed",
+      completed_at: session.completed_at ?? new Date().toISOString(),
+    };
     if (!session.communication_id) {
-      console.log("[webhook/call-complete] Updating session with communication_id and marking completed");
+      sessionUpdate.communication_id = body.communication_id;
+    }
+    if (session.status !== "completed") {
+      console.log("[webhook/call-complete] Marking session as completed:", session.id);
       await supabase
         .from("training_sessions")
-        .update({
-          communication_id: body.communication_id,
-          status: "completed",
-          completed_at: new Date().toISOString(),
-        })
+        .update(sessionUpdate)
         .eq("id", session.id);
     }
 

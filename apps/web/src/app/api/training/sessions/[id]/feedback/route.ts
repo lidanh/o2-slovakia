@@ -126,15 +126,6 @@ export async function POST(
       console.error("[feedback] Failed to send feedback email:", err)
     );
 
-    // Update assignment status to completed if applicable
-    if (data.assignment_id) {
-      await supabase
-        .from("assignments")
-        .update({ status: "completed" })
-        .eq("id", data.assignment_id)
-        .eq("tenant_id", tenantId);
-    }
-
     return NextResponse.json(data);
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });

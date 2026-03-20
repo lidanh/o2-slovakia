@@ -110,11 +110,6 @@ export async function POST(request: NextRequest) {
         .eq("id", session.id);
     }
 
-    await supabase
-      .from("assignments")
-      .update({ status: "in_progress" })
-      .eq("id", assignmentId);
-
     return NextResponse.json({ sessionId: session.id, callId }, { status: 201 });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });

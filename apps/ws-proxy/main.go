@@ -174,6 +174,8 @@ func handleWS(w http.ResponseWriter, r *http.Request) {
 		upstreamURL += "&metadata=" + url.QueryEscape(metadata)
 	}
 
+	log.Printf("[ws-proxy] [session=%s] upstream URL: %s", sessionID, upstreamURL)
+
 	// 7. Connect to upstream
 	reqHeader := http.Header{}
 	reqHeader.Set("X-API-Key", apiKey)

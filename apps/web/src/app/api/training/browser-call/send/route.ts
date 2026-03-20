@@ -106,11 +106,6 @@ export async function POST(request: NextRequest) {
       otp,
     });
 
-    await supabase
-      .from("assignments")
-      .update({ status: "in_progress" })
-      .eq("id", assignment.id);
-
     const callUrl = `/call/${token}`;
     const fullUrl = `${getBaseUrl()}${callUrl}`;
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getAuthUser, getAccessibleTeamIds } from "@/lib/auth/authorize";
+import type { AssignmentStatus, SessionStatus } from "@repo/shared";
 
 const CreateAssignmentsSchema = z.object({
   userIds: z.array(z.string().uuid()).min(1),
@@ -54,7 +55,39 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query.order("created_at", { ascending: false });
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json(data);
+
+    // Derive assignment status from latest session
+    const assignmentIds = (data ?? []).map((a) => a.id);
+    let latestStatusMap = new Map<string, SessionStatus>();
+
+    if (assignmentIds.length > 0) {
+      const { data: sessions } = await supabase
+        .from("training_sessions")
+        .select("assignment_id, status")
+        .in("assignment_id", assignmentIds)
+        .order("created_at", { ascending: false });
+
+      for (const s of sessions ?? []) {
+        if (s.assignment_id && !latestStatusMap.has(s.assignment_id)) {
+          latestStatusMap.set(s.assignment_id, s.status as SessionStatus);
+        }
+      }
+    }
+
+    const enriched = (data ?? []).map((a) => {
+      const sessionStatus = latestStatusMap.get(a.id);
+      let status: AssignmentStatus;
+      if (!sessionStatus) {
+        status = "pending";
+      } else if (sessionStatus === "completed") {
+        status = "completed";
+      } else {
+        status = "in_progress";
+      }
+      return { ...a, status };
+    });
+
+    return NextResponse.json(enriched);
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }

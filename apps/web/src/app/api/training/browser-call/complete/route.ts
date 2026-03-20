@@ -166,18 +166,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Update assignment status
-    if (session.assignment_id) {
-      const { error: assignErr } = await supabase
-        .from("assignments")
-        .update({ status: "completed" })
-        .eq("id", session.assignment_id);
-
-      if (assignErr) {
-        console.error("Failed to update assignment status:", assignErr.message);
-      }
-    }
-
     return NextResponse.json({
       success: true,
       score: feedbackResult?.score ?? null,
